@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoja de Personaje — D&D 5e</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0a12;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#252540;
+--gold:#d4a843;--gold-l:#f0d68a;--gold-d:#a67c2e;
+--parch:#f4e4c1;--parch-d:#d4c4a1;
+--txt:#e8e6e3;--txt2:#a8a6a3;--txt3:#6a6863;
+--red:#c0392b;--green:#27ae60;--blue:#2980b9;--purple:#8e44ad;
+--border:rgba(212,168,67,0.25);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(212,168,67,0.04) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(139,69,19,0.03) 0%,transparent 50%);pointer-events:none}
+
+.sheet{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:20px}
+
+.header{text-align:center;padding:40px 20px 30px;border-bottom:2px solid var(--border);margin-bottom:30px}
+.header h1{font-family:'Cinzel',serif;font-size:clamp(2rem,5vw,3.2rem);color:var(--gold);text-shadow:0 0 40px rgba(212,168,67,0.3);letter-spacing:3px;margin-bottom:5px}
+.header .subtitle{font-family:'Crimson Text',serif;font-style:italic;color:var(--txt2);font-size:1.15rem}
+.header .class-line{font-family:'Cinzel',serif;color:var(--gold-d);font-size:1rem;margin-top:8px;letter-spacing:1px}
+
+.section{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:25px;margin-bottom:20px}
+.section h2{font-family:'Cinzel',serif;color:var(--gold);font-size:1.3rem;margin-bottom:15px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+.stat-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:15px 10px;text-align:center}
+.stat-box .label{font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold);letter-spacing:2px;margin-bottom:5px}
+.stat-box .num{font-size:2rem;font-weight:700;color:var(--txt);line-height:1}
+.stat-box .mod{font-size:0.9rem;color:var(--gold-l);margin-top:4px}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.info-item{background:var(--bg);border-left:3px solid var(--gold);padding:10px 14px;border-radius:0 8px 8px 0}
+.info-item .lbl{font-size:0.7rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.info-item .val{font-size:0.95rem;color:var(--txt);font-weight:500}
+.info-item .val.gold{color:var(--gold)}
+
+.trait-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{display:inline-block;background:rgba(212,168,67,0.1);border:1px solid var(--border);color:var(--gold-l);padding:4px 12px;border-radius:20px;font-size:0.8rem}
+
+.desc-block{background:var(--bg);border-radius:8px;padding:15px;margin-top:10px;border-left:3px solid var(--gold)}
+.desc-block p{font-family:'Crimson Text',serif;font-size:1.05rem;color:var(--parch);line-height:1.7}
+
+.inventory-list{list-style:none;margin-top:10px}
+.inventory-list li{padding:8px 12px;background:var(--bg);border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid var(--border)}
+.inventory-list li .item-name{color:var(--txt);font-weight:500}
+.inventory-list li .item-meta{color:var(--txt3);font-size:0.8rem}
+
+.error{text-align:center;padding:80px 20px}
+.error h2{font-family:'Cinzel',serif;color:var(--red);margin-bottom:10px}
+.error p{color:var(--txt2)}
+
+.actions{text-align:center;margin:30px 0}
+.actions a{display:inline-block;padding:12px 24px;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);font-family:'Cinzel',serif;font-weight:600;border-radius:8px;text-decoration:none;margin:5px;transition:all 0.3s}
+.actions a:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(212,168,67,0.4)}
+.actions .btn-sm{padding:8px 16px;font-size:0.85rem;background:var(--bg4);color:var(--txt);border:1px solid var(--border)}
+
+@media(max-width:768px){
+.sheet{padding:10px}
+.stat-row{grid-template-columns:repeat(3,1fr)}
+.info-grid{grid-template-columns:1fr 1fr}
+.header h1{font-size:1.8rem}
+}
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+
+<script>
+const STAT_NAMES={str:"Fuerza",dex:"Destreza",con:"Constitución",int:"Inteligencia",wis:"Sabiduría",cha:"Carisma"};
+const STAT_KEYS=["str","dex","con","int","wis","cha"];
+
+function getMod(s){return Math.floor((s-10)/2)}
+function modStr(s){const m=getMod(s);return m>=0?`+${m}`:`${m}`}
+
+function init(){
+const hash=window.location.hash.slice(1);
+if(!hash){showError("No se encontró datos del personaje en la URL.");return}
+try{
+const json=decodeURIComponent(escape(atob(hash)));
+const data=JSON.parse(json);
+render(data);
+}catch(e){showError("Error al decodificar los datos: "+e.message)}
+}
+
+function showError(msg){
+document.getElementById('sheet').innerHTML=`<div class="error"><h2>⚠️ Error</h2><p>${msg}</p><p style="margin-top:15px;color:var(--txt3)">Asegúrate de que el enlace sea válido y completo.</p></div>`;
+}
+
+function render(c){
+const s=document.getElementById('sheet');
+const subrace=c.subrace&&RACES_HAS_SUBS[c.race]?` (${c.subrace})`:'';
+const subclassLabel=c.subclass?` — ${c.subclass}`:'';
+const magicLabel=c.magicSchoolLabel?` | ${c.magicSchoolLabel}`:'';
+
+let statsHTML=STAT_KEYS.map(k=>`<div class="stat-box"><div class="label">${k.toUpperCase()}</div><div class="num">${c.stats[k]||10}</div><div class="mod">${modStr(c.stats[k]||10)}</div></div>`).join('');
+
+let infoHTML=`
+<div class="info-item"><div class="lbl">Puntos de Golpe</div><div class="val gold">${c.hp?.max||'?'}</div></div>
+<div class="info-item"><div class="lbl">Clase de Armadura</div><div class="val">${c.ac||10}</div></div>
+<div class="info-item"><div class="lbl">Velocidad</div><div class="val">${c.speed||30} pies</div></div>
+<div class="info-item"><div class="lbl">Bono de Competencia</div><div class="val">+${c.proficiencyBonus||2}</div></div>
+<div class="info-item"><div class="lbl">Dado de Golpe</div><div class="val">d${c.hitDie||8}</div></div>
+<div class="info-item"><div class="lbl">Oro</div><div class="val gold">${c.gold||0} po</div></div>
+<div class="info-item"><div class="lbl">Nivel</div><div class="val">${c.level||1}</div></div>
+<div class="info-item"><div class="lbl">Alineamiento</div><div class="val">${c.alignment||'—'}</div></div>
+<div class="info-item"><div class="lbl">Trasfondo</div><div class="val">${c.background||'—'}</div></div>
+<div class="info-item"><div class="lbl">Salvaciones</div><div class="val">${(c.saves||[]).map(s=>STAT_NAMES[s]||s).join(', ')||'—'}</div></div>
+<div class="info-item"><div class="lbl">Conjuration</div><div class="val">${c.spellcasting?'Sí':'No'}</div></div>
+`;
+
+let traitsHTML='';
+if(c.traits&&c.traits.length){
+traitsHTML=`<div class="section"><h2>Rasgos y Características</h2><div class="trait-tags">${c.traits.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>`;
+}
+
+let descHTML='';
+if(c.physicalDescription){
+descHTML=`<div class="section"><h2>Descripción Física</h2><div class="desc-block"><p>${c.physicalDescription}</p></div></div>`;
+}
+
+let personalityHTML='';
+if(c.personality||c.ideal||c.bond||c.flaw){
+personalityHTML=`<div class="section"><h2>Personalidad</h2><div class="info-grid">
+${c.personality?`<div class="info-item"><div class="lbl">Personalidad</div><div class="val">${c.personality}</div></div>`:''}
+${c.ideal?`<div class="info-item"><div class="lbl">Ideales</div><div class="val">${c.ideal}</div></div>`:''}
+${c.bond?`<div class="info-item"><div class="lbl">Vínculos</div><div class="val">${c.bond}</div></div>`:''}
+${c.flaw?`<div class="info-item"><div class="lbl">Defectos</div><div class="val">${c.flaw}</div></div>`:''}
+</div></div>`;
+}
+
+let backstoryHTML='';
+if(c.backstory){
+backstoryHTML=`<div class="section"><h2>Historia</h2><div class="desc-block"><p>${c.backstory}</p></div></div>`;
+}
+
+let inventoryHTML='';
+const inv=c.inventory||[];
+if(inv.length){
+inventoryHTML=`<div class="section"><h2>Inventario</h2><ul class="inventory-list">${inv.map(i=>{
+const name=typeof i==='string'?i:i.name||'Objeto';
+const qty=typeof i==='object'?i.quantity||1:1;
+const type=typeof i==='object'?i.type||'':'';
+const desc=typeof i==='object'?i.description||'':'';
+const eq=typeof i==='object'&&i.equipped?' ⚔️':'';
+return `<li><span class="item-name">${name}${qty>1?' x'+qty:''}${eq}</span><span class="item-meta">${type}${desc?' — '+desc:''}</span></li>`;
+}).join('')}</ul></div>`;
+}
+
+const baseUrl=window.location.href.replace(/#.*/,'');
+const jsonUrl=baseUrl+'#'+window.location.hash.slice(1);
+
+s.innerHTML=`
+<div class="header">
+<h1>${c.name||'Sin Nombre'}</h1>
+<div class="subtitle">${c.raceLabel||c.race||'—'}${subrace} — ${c.classLabel||c.class||'—'}${subclassLabel}${magicLabel}</div>
+<div class="class-line">Nivel ${c.level||1}</div>
+</div>
+
+<div class="section">
+<h2>Estadísticas</h2>
+<div class="stat-row">${statsHTML}</div>
+</div>
+
+<div class="section">
+<h2>Información del Personaje</h2>
+<div class="info-grid">${infoHTML}</div>
+</div>
+
+${traitsHTML}
+${descHTML}
+${personalityHTML}
+${backstoryHTML}
+${inventoryHTML}
+
+<div class="actions">
+<a href="${window.location.href.replace('viewer.html','index.html')}" target="_blank">✏️ Editar Personaje</a>
+<a href="javascript:copyJSON()" class="btn-sm">📋 Copiar JSON para Bot</a>
+<a href="javascript:copyLink()" class="btn-sm">🔗 Copiar Enlace</a>
+</div>
+
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 20px;border-radius:8px;font-size:0.9rem;z-index:999;box-shadow:0 4px 15px rgba(0,0,0,0.4)"></div>
+`;
+
+window._charData=c;
+}
+
+function showToast(msg){
+const t=document.getElementById('toast');
+if(!t)return;
+t.textContent=msg;t.style.display='block';
+setTimeout(()=>{t.style.display='none'},2500);
+}
+
+function copyJSON(){
+const json=JSON.stringify(window._charData,null,2);
+navigator.clipboard.writeText(json).then(()=>showToast('JSON copiado al portapapeles')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=json;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('JSON copiado');
+});
+}
+
+function copyLink(){
+navigator.clipboard.writeText(window.location.href).then(()=>showToast('Enlace copiado')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=window.location.href;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Enlace copiado');
+});
+}
+
+const RACES_HAS_SUBS={elfo:1,enano:1,mediano:1,gnomo:1,aasimar:1};
+
+init();
+</script>
+</body>
+</html>

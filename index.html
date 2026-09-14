@@ -228,8 +228,25 @@ header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-sec
 <h2>8. Revisar y Exportar</h2>
 <div class="preview-panel" id="previewPanel"></div>
 <div class="btn-row">
-<button class="btn btn-primary" onclick="copyJSON()">📋 Copiar JSON</button>
+<button class="btn btn-primary" onclick="generateShareLink()">🔗 Generar Enlace</button>
 <button class="btn btn-success" onclick="downloadJSON()">⬇ Descargar JSON</button>
+<button class="btn btn-secondary" onclick="copyJSON()">📋 Copiar JSON</button>
+</div>
+<div id="shareSection" class="hidden" style="margin-top:20px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px">
+<h3 style="font-family:'Cinzel',serif;color:var(--gold);margin-bottom:10px">🔗 Enlace de tu Personaje</h3>
+<p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:10px">Cualquiera con este enlace puede ver tu hoja de personaje. También puedes copiar el JSON para importarlo al bot.</p>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<input type="text" id="shareUrl" readonly style="flex:1;background:var(--bg-darker);border:1px solid var(--border);color:var(--gold);padding:10px;border-radius:6px;font-size:0.85rem;font-family:monospace">
+<button class="btn btn-primary" style="padding:10px 16px;font-size:0.8rem" onclick="copyShareLink()">📋 Copiar</button>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btn btn-success" style="padding:10px 16px;font-size:0.8rem" onclick="openViewer()">👁 Abrir Vista Previa</button>
+<button class="btn btn-secondary" style="padding:10px 16px;font-size:0.8rem" onclick="copyJSONForBot()">🤖 Copiar JSON para Bot</button>
+</div>
+<div id="botCommand" class="hidden" style="margin-top:10px;padding:10px;background:var(--bg-darker);border-radius:6px">
+<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:5px">Comando para importar al bot:</p>
+<code id="botCommandText" style="color:var(--green);font-size:0.85rem;word-break:break-all"></code>
+</div>
 </div>
 </div>
 
@@ -970,6 +987,39 @@ const blob=new Blob([json],{type:'application/json'});
 const url=URL.createObjectURL(blob);
 const a=document.createElement('a');a.href=url;a.download=`${charData.name||'personaje'}_dnd5e.json`;
 document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+function generateShareLink(){
+const data=getExportJSON();
+const json=JSON.stringify(data);
+const encoded=btoa(unescape(encodeURIComponent(json)));
+const baseUrl=window.location.origin+window.location.pathname.replace('index.html','').replace(/\/$/,'');
+const viewerUrl=baseUrl+'/viewer.html#'+encoded;
+document.getElementById('shareUrl').value=viewerUrl;
+document.getElementById('shareSection').classList.remove('hidden');
+document.getElementById('shareUrl').select();
+}
+
+function copyShareLink(){
+const url=document.getElementById('shareUrl').value;
+navigator.clipboard.writeText(url).then(()=>alert('Enlace copiado al portapapeles')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Enlace copiado');
+});
+}
+
+function openViewer(){
+const url=document.getElementById('shareUrl').value;
+if(url)window.open(url,'_blank');
+}
+
+function copyJSONForBot(){
+const data=getExportJSON();
+const json=JSON.stringify(data,null,2);
+navigator.clipboard.writeText(json).then(()=>alert('JSON copiado. Ahora usa /import_sheet en Discord y pega el JSON.')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=json;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('JSON copiado');
+});
+document.getElementById('botCommand').classList.remove('hidden');
+document.getElementById('botCommandText').textContent='/import_sheet sheet_json: <pegar JSON aquí>';
 }
 
 function updateStepVisibility(){
