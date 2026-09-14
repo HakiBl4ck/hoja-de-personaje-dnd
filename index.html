@@ -258,6 +258,7 @@ header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-sec
 
 <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
+<script src="config.js"></script>
 <script>
 const RACES = {
 humano:{name:"Humano",speed:30,traits:["Versátil"],languages:["Común","Uno adicional"],bonuses:{},subraces:{}},
@@ -991,13 +992,39 @@ document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeOb
 
 function generateShareLink(){
 const data=getExportJSON();
-const json=JSON.stringify(data);
-const encoded=btoa(unescape(encodeURIComponent(json)));
-const baseUrl=window.location.origin+window.location.pathname.replace('index.html','').replace(/\/$/,'');
-const viewerUrl=baseUrl+'/viewer.html#'+encoded;
-document.getElementById('shareUrl').value=viewerUrl;
+if(useServer()){
+fetch(JSONBIN_API_URL+'/b',{
+method:'POST',
+headers:{
+'Content-Type':'application/json',
+'X-Master-Key':JSONBIN_API_KEY,
+'X-Bin-Private':'false'
+},
+body:JSON.stringify(data)
+}).then(r=>r.json()).then(res=>{
+if(res.id){
+const url=window.location.origin+window.location.pathname.replace('index.html','')+'viewer.html?id='+res.id;
+document.getElementById('shareUrl').value=url;
 document.getElementById('shareSection').classList.remove('hidden');
 document.getElementById('shareUrl').select();
+}else{
+alert('Error al guardar en la nube: '+(res.error||JSON.stringify(res)));
+}
+}).catch(e=>{
+alert('Error de conexión con JSONBin.io: '+e.message);
+});
+}else{
+const id='local_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
+const key='dnd5e_chars';
+const store=JSON.parse(localStorage.getItem(key)||'{}');
+store[id]=data;
+localStorage.setItem(key,JSON.stringify(store));
+const url=window.location.origin+window.location.pathname.replace('index.html','')+'viewer.html?id='+id;
+document.getElementById('shareUrl').value=url;
+document.getElementById('shareSection').classList.remove('hidden');
+document.getElementById('shareUrl').select();
+alert('Guardado localmente. Para compartir en la nube, configura JSONBin.io en config.js');
+}
 }
 
 function copyShareLink(){

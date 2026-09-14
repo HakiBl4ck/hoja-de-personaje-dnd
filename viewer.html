@@ -71,6 +71,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 <body>
 <div class="sheet" id="sheet"></div>
 
+<script src="config.js"></script>
 <script>
 const STAT_NAMES={str:"Fuerza",dex:"Destreza",con:"Constitución",int:"Inteligencia",wis:"Sabiduría",cha:"Carisma"};
 const STAT_KEYS=["str","dex","con","int","wis","cha"];
@@ -79,13 +80,32 @@ function getMod(s){return Math.floor((s-10)/2)}
 function modStr(s){const m=getMod(s);return m>=0?`+${m}`:`${m}`}
 
 function init(){
-const hash=window.location.hash.slice(1);
-if(!hash){showError("No se encontró datos del personaje en la URL.");return}
-try{
-const json=decodeURIComponent(escape(atob(hash)));
-const data=JSON.parse(json);
-render(data);
-}catch(e){showError("Error al decodificar los datos: "+e.message)}
+const params=new URLSearchParams(window.location.search);
+const rid=params.get('id');
+if(!rid){showError("No se encontró el ID del personaje en la URL.");return}
+
+if(rid.startsWith('local_')){
+const key='dnd5e_chars';
+const store=JSON.parse(localStorage.getItem(key)||'{}');
+const data=store[rid];
+if(data){window._charData=data;render(data)}
+else showError("No se encontró el personaje localmente.");
+return;
+}
+
+if(useServer()){
+fetch(JSONBIN_API_URL+'/b/'+rid,{
+headers:{'X-Master-Key':JSONBIN_API_KEY}
+})
+.then(r=>{if(!r.ok)throw new Error('No encontrado');return r.json()})
+.then(res=>{
+const data=res.record||res;
+window._charData=data;render(data);
+})
+.catch(e=>showError("No se pudo cargar el personaje de la nube. Verifica el enlace."));
+}else{
+showError("Servidor no configurado. Configura JSONBin.io en config.js para ver personajes compartidos.");
+}
 }
 
 function showError(msg){
@@ -179,7 +199,7 @@ ${backstoryHTML}
 ${inventoryHTML}
 
 <div class="actions">
-<a href="${window.location.href.replace('viewer.html','index.html')}" target="_blank">✏️ Editar Personaje</a>
+<a href="index.html" target="_blank">✏️ Editar Personaje</a>
 <a href="javascript:copyJSON()" class="btn-sm">📋 Copiar JSON para Bot</a>
 <a href="javascript:copyLink()" class="btn-sm">🔗 Copiar Enlace</a>
 </div>
