@@ -178,6 +178,7 @@ header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-sec
 <h2>3. Selecciona tu Clase</h2>
 <div class="selection-grid" id="classGrid"></div>
 <div id="subclassSection" class="subrace-select hidden"><label>Subclase:</label><select id="subclassSelect"></select></div>
+<div id="magicSchoolSection" class="subrace-select hidden"><label>Colegio / Escuela de Magia:</label><select id="magicSchoolSelect"></select><p style="font-size:0.8rem;color:var(--text-muted);margin-top:5px">Selecciona la especialización mágica de tu personaje.</p></div>
 <div id="classDetails" style="margin-top:15px"></div>
 </div>
 
@@ -194,9 +195,10 @@ header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-sec
 </div>
 
 <div id="step6" class="wizard-card step-content hidden">
-<h2>6. Equipo</h2>
-<div id="autoEquipment" class="equipment-section"></div>
-<h3>Equipo Adicional</h3>
+<h2>6. Equipo Inicial</h2>
+<p style="color:var(--text-secondary);margin-bottom:15px;font-size:0.9rem">Selecciona tu equipo según tu clase y raza. Cada opción es un dropdown con alternativas.</p>
+<div id="equipmentDropdowns" class="equipment-section"></div>
+<h3 style="margin-top:20px">Equipo Adicional</h3>
 <div id="customEquipment" class="equipment-section"></div>
 <button class="add-item-btn" onclick="addCustomEquipment()">+ Agregar objeto personalizado</button>
 <div class="form-row" style="margin-top:15px">
@@ -205,8 +207,11 @@ header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-sec
 </div>
 
 <div id="step7" class="wizard-card step-content hidden">
-<h2>7. Historia y Trasfondo</h2>
+<h2>7. Historia y Descripción</h2>
 <div class="backstory-section">
+<div class="form-row">
+<div class="form-group"><label>Descripción Física</label><textarea id="physicalDesc" placeholder="Describe la apariencia de tu personaje: estatura, complexión, color de ojos, cabello, marcas distintivas, ropa que lleva, etc."></textarea></div>
+</div>
 <div class="form-row">
 <div class="form-group"><label>Personalidad</label><textarea id="personality" placeholder="Describe la personalidad de tu personaje..."></textarea></div>
 <div class="form-group"><label>Ideales</label><textarea id="ideal" placeholder="¿Qué ideal guía a tu personaje?"></textarea></div>
@@ -430,9 +435,192 @@ const STAT_COST = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
 const STAT_NAMES = {str:"Fuerza",dex:"Destreza",con:"Constitución",int:"Inteligencia",wis:"Sabiduría",cha:"Carisma"};
 const STAT_KEYS = ["str","dex","con","int","wis","cha"];
 
+const MAGIC_SCHOOLS = {
+evocador:{name:"Evocación",desc:"Esculpir hechizos, explosiones controladas. Fuego, relámpagos, ácido."},
+ilusionista:{name:"Ilusión",desc:"Crear ilusiones visuales, sonoras y sensoriales. Engañar los sentidos."},
+abjurador:{name:"Abjuración",desc:"Escudos arcanos, protección, antimagia. Defender y resistir."},
+adivino:{name:"Adivinación",desc:"Ver el pasado, presente y futuro. Prever peligros y destinos."},
+conjurador:{name:"Conjuración",desc:"Invocar criaturas, teletransporte, crear objetos del aire."},
+nigromancia:{name:"Nigromancia",desc:"Poder sobre la vida y la muerte. No-muertos, drenar energía vital."},
+transmutacion:{name:"Transmutación",desc:"Transformar materia, alterar la realidad. Cambiar forma y sustancia."},
+encantamiento:{name:"Encantamiento",desc:"Dominar mentes, controlar voluntades. Charma, sugestión, mandato."},
+pacto_arcano:{name:"Pacto Arcano",desc:"Poder arcano puro del vacío. Conocimiento prohibido."},
+pacto_celestial:{name:"Pacto Celestial",desc:"Sangre celestial, curación radiante. Aliados celestiales."},
+pacto_infernal:{name:"Pacto Infernal",desc:"Pacto con demonios, poder oscuro. Llama infernal."},
+pacto_feérico:{name:"Pacto Féérico",desc:"Pacto con seres feéricos, ilusiones. Encantamiento natural."},
+pacto_hexblade:{name:"Pacto Hexblade",desc:"Arma maldita de la Sombra. Poder oscuro canalizado."},
+pacto_gran_antiguo:{name:"Pacto del Gran Antiguo",desc:"Conocimiento cósmico, locura. Entidades abismales."},
+linaje_dragon:{name:"Linaje Dracónico",desc:"Sangre de dragón, resistencia elemental. Poder ancestral."},
+linaje_feerico:{name:"Linaje Féérico",desc:"Sangre feérica, encantamientos naturales. Magia salvaje."},
+linaje_tormenta:{name:"Magia de Tormenta",desc:"Viento y trueno, movilidad extrema. Poder climático."},
+linaje_infernal:{name:"Linaje Infernal",desc:"Sangre infernal, poder oscuro. Legado diabólico."}
+};
+
+const CLASS_EQUIPMENT = {
+guerrero:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Hacha de mano",desc:"1d6 cortante (ligera, arrojadiza)",qty:2},{name:"Jabalina",desc:"1d6 perforante (ligera, arrojadiza)",qty:4}],
+armor:[{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1},{name:"Sin armadura",desc:"CA 10 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m, yesquero",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m, herramientas de ladrón, kit de escalada",qty:1}]
+},
+mago:{
+weapon:[{name:"Bastón",desc:"1d6 contundente, foco arcano",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Sin armadura",desc:"CA 10 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro de conjuros, botella de tinta, pluma, cuchillo, ropa común",qty:1},{name:"Paquete de exploration",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1}],
+extra:[{name:"Libro de conjuros",desc:"Contiene tus conjuros preparados",qty:1},{name:"Foco arcano",desc:"Bastón, orbía u otro foco",qty:1}]
+},
+pícaro:{
+weapon:[{name:"Espada corta",desc:"1d6 perforante",qty:2},{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Arco corto",desc:"1d6 perforante, 24/96m",qty:1}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Flechas",desc:"Munición para arco",qty:20}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m, herramientas de ladrón",qty:1}],
+extra:[{name:"Herramientas de ladrón",desc:"Ganzúas, ganzúa maestra, kit de escritura",qty:1}]
+},
+clérigo:{
+weapon:[{name:"Maza",desc:"1d6 contundente",qty:1},{name:"Martillo de guerra",desc:"1d8 contundente (versátil 1d10)",qty:1}],
+armor:[{name:"Cota de escamas",desc:"CA 14 + DES (máx 2)",qty:1},{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo con emblema sagrado",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de sacerdote",desc:"Mochila, vestimentas, símbolo sagrado, incienso x5, ropa común",qty:1},{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1}]
+},
+explorador:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Arco largo",desc:"1d8 perforante, 45/180m",qty:1}],
+armor:[{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1},{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Flechas",desc:"Munición para arco",qty:20}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m, herramientas de ladrón",qty:1}]
+},
+bardo:{
+weapon:[{name:"Espada corta",desc:"1d6 perforante",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Arco corto",desc:"1d6 perforante, 24/96m",qty:1}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Flechas",desc:"Munición para arco",qty:20}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro de conjuros, botella de tinta, pluma, cuchillo, ropa común",qty:1}],
+extra:[{name:"Instrumento musical",desc:"Lira, flauta, u otro instrumento",qty:1}]
+},
+bárbaro:{
+weapon:[{name:"Hacha de mano",desc:"1d6 cortante (ligera, arrojadiza)",qty:2},{name:"Jabalina",desc:"1d6 perforante (ligera, arrojadiza)",qty:4}],
+armor:[{name:"Sin armadura",desc:"CA 10 + DES + CON (furor)",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m",qty:1}]
+},
+paladín:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Jabalina",desc:"1d6 perforante (ligera, arrojadiza)",qty:5}],
+armor:[{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1},{name:"Paquete de sacerdote",desc:"Mochila, vestimentas, símbolo sagrado, incienso x5",qty:1}]
+},
+brujo:{
+weapon:[{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Ballesta ligera",desc:"1d8 perforante, 24/96m",qty:1}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Virotes",desc:"Munición para ballesta",qty:20}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro de conjuros, botella de tinta, pluma, cuchillo, ropa común",qty:1},{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1}],
+extra:[{name:"Foco arcano",desc:"Orbía, grimorio, foco especial",qty:1}]
+},
+hechicero:{
+weapon:[{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Ballesta ligera",desc:"1d8 perforante, 24/96m",qty:1}],
+armor:[{name:"Sin armadura",desc:"CA 10 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Virotes",desc:"Munición para ballesta",qty:20}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro de conjuros, botella de tinta, pluma, cuchillo, ropa común",qty:1},{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1}],
+extra:[{name:"Foco arcano",desc:"Orbía, amuleto, foco especial",qty:1}]
+},
+druida:{
+weapon:[{name:"Espada corta",desc:"1d6 perforante",qty:2},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo druida",desc:"+2 CA (madera/no metal)",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1}],
+extra:[{name:"Druida emblem",desc:"Símbolo de madera o hueso",qty:1}]
+},
+monje:{
+weapon:[{name:"Espada corta",desc:"1d6 perforante",qty:2},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Sin armadura",desc:"CA 10 + DES + SAB",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5, cuerda 15m",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m",qty:1}]
+},
+artifice:{
+weapon:[{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Ballesta ligera",desc:"1d8 perforante, 24/96m",qty:1}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Virotes",desc:"Munición para ballesta",qty:20}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro, botella de tinta, pluma, cuchillo, ropa común",qty:1}],
+extra:[{name:"Herramientas de artesano",desc:"Kit de herramientas",qty:1},{name:"Foco arcano",desc:"Foco arcano o herramienta",qty:1}]
+},
+alquimista:{
+weapon:[{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Ballesta ligera",desc:"1d8 perforante, 24/96m",qty:1}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Virotes",desc:"Munición para ballesta",qty:20}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, libro, botella de tinta, pluma, cuchillo, ropa común",qty:1}],
+extra:[{name:"Kit de alquimia",desc:"Tubos, probetas, sustancias químicas",qty:1}]
+},
+nigromante:{
+weapon:[{name:"Daga",desc:"1d4 perforante",qty:2},{name:"Bastón",desc:"1d6 contundente",qty:1}],
+armor:[{name:"Sin armadura",desc:"CA 10 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, grimorio, botella de tinta, pluma, cuchillo, ropa común",qty:1}],
+extra:[{name:"Grimorio nigromántico",desc:"Conocimiento sobre no-muertos",qty:1}]
+},
+templar:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Maza",desc:"1d6 contundente",qty:1}],
+armor:[{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Cota de escamas",desc:"CA 14 + DES (máx 2)",qty:1}],
+shield:[{name:"Escudo con emblema sagrado",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de sacerdote",desc:"Mochila, vestimentas, símbolo sagrado, incienso x5",qty:1},{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre",qty:1}]
+},
+gladiador:{
+weapon:[{name:"Tridente",desc:"1d6 perforante (versátil 1d8)",qty:2},{name:"Red",desc:"Especial (especial)",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1},{name:"Sin armadura",desc:"CA 10 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1}]
+},
+ejecutor:{
+weapon:[{name:"Hacha de guerra",desc:"1d12 cortante (versátil 1d10)",qty:1},{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1}],
+armor:[{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m",qty:1}]
+},
+sanador:{
+weapon:[{name:"Maza",desc:"1d6 contundente",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de sacerdote",desc:"Mochila, vestimentas, símbolo sagrado, incienso x5",qty:1}],
+extra:[{name:"Kit de curación",desc:"Vendas, hierbas medicinales, ungüentos",qty:1}]
+},
+inquisidor:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1},{name:"Cota de escamas",desc:"CA 14 + DES (máx 2)",qty:1}],
+shield:[{name:"Escudo con emblema sagrado",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de sacerdote",desc:"Mochila, vestimentas, símbolo sagrado, incienso x5",qty:1}],
+extra:[{name:"Símbolo sagrado",desc:"Emblema de tu fe",qty:1}]
+},
+guerrero_arcano:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Cota de malla",desc:"CA 16",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+gear:[{name:"Paquete de erudito",desc:"Mochila, grimorio, botella de tinta, pluma, cuchillo",qty:1},{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre",qty:1}],
+extra:[{name:"Grimorio arcano",desc:"Fórmulas marciales arcanas",qty:1}]
+},
+corsario:{
+weapon:[{name:"Espada corta",desc:"1d6 perforante",qty:2},{name:"Mosquetón",desc:"1d6 perforante, 15/60m",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1},{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1}],
+shield:[{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Perdigones",desc:"Munición para mosquetón",qty:20}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1}]
+},
+cazador_conjurado:{
+weapon:[{name:"Espada larga",desc:"1d8 cortante (versátil 1d10)",qty:1},{name:"Arco largo",desc:"1d8 perforante, 45/180m",qty:1},{name:"Daga",desc:"1d4 perforante",qty:2}],
+armor:[{name:"Armadura de cuero tachonado",desc:"CA 12 + DES",qty:1},{name:"Armadura de cuero",desc:"CA 11 + DES",qty:1}],
+shield:[{name:"Escudo",desc:"+2 CA",qty:1},{name:"Sin escudo",desc:"",qty:0}],
+ammo:[{name:"Flechas",desc:"Munición para arco",qty:20}],
+gear:[{name:"Paquete de exploración",desc:"Mochila, saco, raciones x10, odre, antorchas x5",qty:1},{name:"Paquete de mazmorra",desc:"Mochila, antorchas x10, raciones x10, cuerda 15m",qty:1}]
+}
+};
+
 let currentStep = 1;
 let charData = {
-name:"",race:"",raceLabel:"",subrace:"",class:"",classLabel:"",subclass:"",background:"",alignment:"",level:1,
+name:"",race:"",raceLabel:"",subrace:"",class:"",classLabel:"",subclass:"",magicSchool:"",background:"",alignment:"",level:1,
 stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
 mods:{str:0,dex:0,con:0,int:0,wis:0,cha:0},
 hp:{current:10,max:10,temp:0},ac:10,speed:30,proficiencyBonus:2,saves:[],hitDie:10,
@@ -556,11 +744,33 @@ const sel=document.getElementById('subclassSelect');
 sel.innerHTML='<option value="">Sin subclase</option>'+sub.map(s=>`<option value="${s}">${CLASSES[k].subclasses[s].name}</option>`).join('');
 charData.subclass='';
 }else{ss.classList.add('hidden');charData.subclass='';}
+
+const mss=document.getElementById('magicSchoolSection');
+const arcaneClasses=['mago','brujo','hechicero'];
+if(arcaneClasses.includes(k)){
+mss.classList.remove('hidden');
+const msSel=document.getElementById('magicSchoolSelect');
+let schoolOptions='';
+if(k==='mago'){
+schoolOptions=Object.entries(MAGIC_SCHOOLS).filter(([id])=>['evocador','ilusionista','abjurador','adivino','conjurador','nigromancia','transmutacion','encantamiento'].includes(id)).map(([id,s])=>`<option value="${id}">${s.name} — ${s.desc}</option>`).join('');
+}else if(k==='brujo'){
+schoolOptions=Object.entries(MAGIC_SCHOOLS).filter(([id])=>['pacto_arcano','pacto_celestial','pacto_infernal','pacto_feérico','pacto_hexblade','pacto_gran_antiguo'].includes(id)).map(([id,s])=>`<option value="${id}">${s.name} — ${s.desc}</option>`).join('');
+}else if(k==='hechicero'){
+schoolOptions=Object.entries(MAGIC_SCHOOLS).filter(([id])=>['linaje_dragon','linaje_feerico','linaje_tormenta','linaje_infernal'].includes(id)).map(([id,s])=>`<option value="${id}">${s.name} — ${s.desc}</option>`).join('');
+}
+msSel.innerHTML='<option value="">Seleccionar escuela/pacto...</option>'+schoolOptions;
+charData.magicSchool='';
+}else{
+mss.classList.add('hidden');
+charData.magicSchool='';
+}
+
 sd.innerHTML=`<h3>${CLASSES[k].name}</h3>
 <p style="color:var(--text-secondary);margin:8px 0">Dado de Golpe: d${CLASSES[k].hitDie} | Salvaciones: ${CLASSES[k].saves.map(s=>STAT_NAMES[s]).join(', ')}</p>
 <p style="color:var(--text-secondary);margin:4px 0">Habilidades principales: ${CLASSES[k].primary.map(s=>STAT_NAMES[s]).join(', ')}</p>
 <div style="margin:8px 0">${CLASSES[k].proficiencies.map(p=>`<span class="trait-tag">${p}</span>`).join('')}</div>
 ${sub.length?`<div style="margin:10px 0"><strong style="color:var(--gold-light)">Subclases disponibles:</strong><br>${sub.map(s=>`<span class="trait-tag">${CLASSES[k].subclasses[s].name}</span>`).join(' ')}</div>`:''}`;
+renderEquipmentDropdowns(k);
 }
 
 function initBackgroundGrid(){
@@ -587,22 +797,53 @@ sd.innerHTML=`<h3>${BACKGROUNDS[k].name}</h3>
 <p style="color:var(--text-secondary)">Herramientas: ${BACKGROUNDS[k].tools.join(', ')}</p>
 ${BACKGROUNDS[k].languages?`<p style="color:var(--text-secondary)">Idiomas adicionales: ${BACKGROUNDS[k].languages}</p>`:''}
 <p style="color:var(--text-secondary)">Oro: ${BACKGROUNDS[k].gold} po</p>
-<div style="margin:10px 0"><strong style="color:var(--gold-light)">Equipo:</strong><br>${BACKGROUNDS[k].equipment.map(e=>`<span class="trait-tag">${e}</span>`).join(' ')}</div>`;
-updateAutoEquipment(k);
+<div style="margin:10px 0"><strong style="color:var(--gold-light)">Equipo del trasfondo:</strong><br>${BACKGROUNDS[k].equipment.map(e=>`<span class="trait-tag">${e}</span>`).join(' ')}</div>`;
 }
 
-function updateAutoEquipment(bgKey){
-const ae=document.getElementById('autoEquipment');
-ae.innerHTML='<h3>Equipo Automático del Trasfondo</h3>';
-if(!bgKey)return;
-const eq=BACKGROUNDS[bgKey].equipment;
-eq.forEach(item=>{
-ae.innerHTML+=`<div class="equipment-item"><span style="color:var(--gold);margin-right:5px">⚔</span><input type="text" value="${item}" readonly></div>`;
+function renderEquipmentDropdowns(classKey){
+const ae=document.getElementById('equipmentDropdowns');
+ae.innerHTML='';
+if(!classKey)return;
+const eq=CLASS_EQUIPMENT[classKey];
+if(!eq){ae.innerHTML='<p style="color:var(--text-muted)">Selecciona una clase para ver el equipo disponible.</p>';return;}
+
+const sections=[
+{key:'weapon',label:'Arma Principal',icon:'⚔'},
+{key:'armor',label:'Armadura',icon:'🛡'},
+{key:'shield',label:'Escudo',icon:'🛡'},
+{key:'ammo',label:'Munición',icon:'🏹'},
+{key:'gear',label:'Paquete de Equipo',icon:'🎒'},
+{key:'extra',label:'Equipo Especial',icon:'✨'}
+];
+
+sections.forEach(sec=>{
+const items=eq[sec.key];
+if(!items||items.length===0)return;
+const div=document.createElement('div');
+div.className='equipment-item';
+div.style.flexDirection='column';
+div.style.alignItems='stretch';
+div.innerHTML=`<label style="color:var(--gold);font-size:0.85rem;margin-bottom:5px">${sec.icon} ${sec.label}</label>
+<select class="equipment-select" data-section="${sec.key}" onchange="onEquipmentChange(this)">
+${items.map((it,i)=>`<option value="${i}" data-name="${it.name}" data-desc="${it.desc}" data-qty="${it.qty}" ${it.qty===0?'disabled':''}>${it.name}${it.desc?' — '+it.desc:''}${it.qty>1?' (x'+it.qty+')':''}</option>`).join('')}
+</select>`;
+ae.appendChild(div);
 });
-const cls=charData.class?CLASSES[charData.class]:null;
-if(cls){
-ae.innerHTML+=`<div class="equipment-item"><span style="color:var(--gold);margin-right:5px">🛡</span><input type="text" value="Armas y armadura de ${cls.name}" readonly></div>`;
 }
+
+function onEquipmentChange(sel){
+sel.style.borderColor=sel.value?'var(--green)':'var(--border)';
+}
+
+function getSelectedEquipment(){
+const result=[];
+document.querySelectorAll('.equipment-select').forEach(sel=>{
+const opt=sel.options[sel.selectedIndex];
+if(opt&&opt.dataset.name&&opt.dataset.qty!=='0'){
+result.push({name:opt.dataset.name,desc:opt.dataset.desc,qty:parseInt(opt.dataset.qty)||1,type:'gear',equipped:false});
+}
+});
+return result;
 }
 
 function addCustomEquipment(){
@@ -634,7 +875,7 @@ const speed=raceData?raceData.speed:30;
 charData.speed=speed;
 charData.saves=charData.class?CLASSES[charData.class].saves:[];
 charData.hitDie=charData.class?CLASSES[charData.class].hitDie:10;
-charData.spellcasting=['mago','clérigo','druida','bardo','paladín','hechicero','brujo'].includes(charData.class);
+charData.spellcasting=['mago','clérigo','druida','bardo','paladín','hechicero','brujo','nigromante','alquimista','sanador','inquisidor','guerrero_arcano'].includes(charData.class);
 const traits=[];
 if(raceData){traits.push(...raceData.traits)}
 if(charData.subrace&&raceData&&raceData.subraces[charData.subrace]){traits.push(...raceData.subraces[charData.subrace].traits)}
@@ -643,18 +884,23 @@ const cls=CLASSES[charData.class];
 Object.values(cls.subclasses).forEach(sc=>{traits.push(...sc.features)});
 }
 charData.traits=traits;
-charData.inventory=[
-...document.querySelectorAll('#autoEquipment .equipment-item input').map(i=>i.value).filter(Boolean),
-...customEquipmentItems.filter(Boolean)
-];
+
+const selectedEquip=getSelectedEquipment();
+const bgEquip=charData.background&&BACKGROUNDS[Object.keys(BACKGROUNDS).find(k=>BACKGROUNDS[k].name===charData.background)]?BACKGROUNDS[Object.keys(BACKGROUNDS).find(k=>BACKGROUNDS[k].name===charData.background)].equipment:[];
+const customEquip=customEquipmentItems.filter(Boolean);
+charData.inventory=[...selectedEquip,...bgEquip.map(e=>({name:e,desc:'',qty:1,type:'gear',equipped:false})),...customEquip.map(e=>({name:e,desc:'',qty:1,type:'gear',equipped:false}))];
 
 const statsHTML=STAT_KEYS.map(k=>`<div class="preview-stat"><div class="label">${k.toUpperCase()}</div><div class="num">${charData.stats[k]}</div><div class="mod">${getModStr(charData.stats[k])}</div></div>`).join('');
+
+const magicSchoolName=charData.magicSchool&&MAGIC_SCHOOLS[charData.magicSchool]?MAGIC_SCHOOLS[charData.magicSchool].name:'';
+const physicalDesc=document.getElementById('physicalDesc')?document.getElementById('physicalDesc').value:'';
 
 p.innerHTML=`<h3>Vista Previa del Personaje</h3>
 <div class="preview-grid">
 <div class="preview-item"><label>Nombre</label><div class="value gold">${charData.name||'Sin nombre'}</div></div>
 <div class="preview-item"><label>Raza</label><div class="value">${charData.raceLabel}${charData.subrace?' ('+RACES[charData.race].subraces[charData.subrace].name+')':''}</div></div>
 <div class="preview-item"><label>Clase</label><div class="value">${charData.classLabel}${charData.subclass?' - '+CLASSES[charData.class].subclasses[charData.subclass].name:''}</div></div>
+${magicSchoolName?`<div class="preview-item"><label>Colegio / Escuela</label><div class="value">${magicSchoolName}</div></div>`:''}
 <div class="preview-item"><label>Nivel</label><div class="value">${charData.level}</div></div>
 <div class="preview-item"><label>Alineamiento</label><div class="value">${charData.alignment||'Sin definir'}</div></div>
 <div class="preview-item"><label>Trasfondo</label><div class="value">${charData.background||'Sin trasfondo'}</div></div>
@@ -669,6 +915,7 @@ p.innerHTML=`<h3>Vista Previa del Personaje</h3>
 </div>
 <h3 style="margin-top:20px">Estadísticas</h3>
 <div class="preview-stats">${statsHTML}</div>
+${physicalDesc?`<h3 style="margin-top:15px">Descripción Física</h3><p style="font-family:'Crimson Text',serif;font-size:1.05rem;color:var(--parchment);line-height:1.7;padding:15px;background:var(--bg-card);border-radius:8px;border-left:3px solid var(--gold)">${physicalDesc}</p>`:''}
 ${charData.traits.length?`<h3 style="margin-top:15px">Rasgos y Características</h3><div style="margin:10px 0">${charData.traits.map(t=>`<span class="trait-tag">${t}</span>`).join(' ')}</div>`:''}
 ${charData.personality||charData.ideal||charData.bond||charData.flaw?`<h3 style="margin-top:15px">Trasfondo del Personaje</h3>
 <div class="preview-grid">
@@ -678,23 +925,35 @@ ${charData.bond?`<div class="preview-item"><label>Vínculos</label><div class="v
 ${charData.flaw?`<div class="preview-item"><label>Defectos</label><div class="value">${charData.flaw}</div></div>`:''}
 </div>`:''}
 ${charData.backstory?`<div style="margin-top:15px"><h3 style="margin-bottom:8px">Historia</h3><p style="font-family:'Crimson Text',serif;font-size:1.05rem;color:var(--parchment);line-height:1.7;padding:15px;background:var(--bg-card);border-radius:8px;border-left:3px solid var(--gold)">${charData.backstory}</p></div>`:''}
-${charData.inventory.length?`<h3 style="margin-top:15px">Inventario</h3><div style="margin:10px 0">${charData.inventory.map(i=>`<span class="trait-tag">${i}</span>`).join(' ')}</div>`:''}`;
+${charData.inventory.length?`<h3 style="margin-top:15px">Inventario</h3><div style="margin:10px 0">${charData.inventory.map(i=>`<span class="trait-tag">${i.name}${i.qty>1?' x'+i.qty:''}</span>`).join(' ')}</div>`:''}`;
 }
 
 function getExportJSON(){
+const physicalDesc=document.getElementById('physicalDesc')?document.getElementById('physicalDesc').value:'';
+const selectedEquip=getSelectedEquipment();
+const bgEquip=charData.background&&BACKGROUNDS[Object.keys(BACKGROUNDS).find(k=>BACKGROUNDS[k].name===charData.background)]?BACKGROUNDS[Object.keys(BACKGROUNDS).find(k=>BACKGROUNDS[k].name===charData.background)].equipment:[];
+const customEquip=customEquipmentItems.filter(Boolean);
+const fullInventory=[
+...selectedEquip.map(e=>({name:e.name,quantity:e.qty,type:'gear',description:e.desc,weight:1,equipped:false})),
+...bgEquip.map(e=>({name:e,quantity:1,type:'gear',description:'',weight:1,equipped:false})),
+...customEquip.map(e=>({name:e,quantity:1,type:'gear',description:'',weight:1,equipped:false}))
+];
 return{
 name:charData.name||"Sin nombre",
 race:charData.race,raceLabel:charData.raceLabel,subrace:charData.subrace,
 class:charData.class,classLabel:charData.classLabel,subclass:charData.subclass,
+magicSchool:charData.magicSchool||"",
+magicSchoolLabel:charData.magicSchool&&MAGIC_SCHOOLS[charData.magicSchool]?MAGIC_SCHOOLS[charData.magicSchool].name:"",
 background:charData.background,alignment:charData.alignment,level:parseInt(charData.level)||1,
 stats:{...charData.stats},mods:{...charData.mods},
 hp:{...charData.hp},ac:charData.ac,speed:charData.speed,
 proficiencyBonus:charData.proficiencyBonus,saves:[...charData.saves],
 hitDie:charData.hitDie,traits:[...charData.traits],
+physicalDescription:physicalDesc,
 backstory:charData.backstory,personality:charData.personality,
 ideal:charData.ideal,bond:charData.bond,flaw:charData.flaw,
-conditions:[],gold:parseInt(charData.gold)||15,spellcasting:charData.spellcasting,
-inventory:[...charData.inventory]
+conditions:[],gold:parseInt(document.getElementById('startingGold').value)||15,spellcasting:charData.spellcasting,
+inventory:fullInventory
 };
 }
 
@@ -779,6 +1038,9 @@ charData.subrace=this.value;
 });
 document.getElementById('subclassSelect').addEventListener('change',function(){
 charData.subclass=this.value;
+});
+document.getElementById('magicSchoolSelect').addEventListener('change',function(){
+charData.magicSchool=this.value;
 });
 document.querySelectorAll('.step-dot').forEach(dot=>{
 dot.addEventListener('click',function(){
