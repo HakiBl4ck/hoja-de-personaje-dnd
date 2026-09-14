@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D&D 5e Character Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg-dark:#1a1a2e;--bg-darker:#0f0f1a;--bg-card:#252540;--bg-card-hover:#2a2a50;
+--gold:#d4a843;--gold-light:#f0d68a;--gold-dark:#a67c2e;
+--parchment:#f4e4c1;--parchment-dark:#d4c4a1;
+--text-primary:#e8e6e3;--text-secondary:#a8a6a3;--text-muted:#6a6863;
+--red:#c0392b;--green:#27ae60;--blue:#2980b9;--purple:#8e44ad;
+--border:rgba(212,168,67,0.3);
+--shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg-darker);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(212,168,67,0.03) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(139,69,19,0.05) 0%,transparent 50%);pointer-events:none;z-index:0}
+
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px}
+
+header{text-align:center;padding:30px 0 20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+header h1{font-family:'Cinzel',serif;font-size:clamp(1.8rem,4vw,2.8rem);color:var(--gold);text-shadow:0 0 30px rgba(212,168,67,0.3);letter-spacing:2px}
+header p{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-secondary);margin-top:8px;font-size:1.1rem}
+
+.progress-container{margin-bottom:30px}
+.progress-bar{display:flex;justify-content:space-between;position:relative;padding:0 10px}
+.progress-bar::before{content:'';position:absolute;top:18px;left:30px;right:30px;height:3px;background:var(--bg-card);border-radius:2px}
+.progress-bar::after{content:'';position:absolute;top:18px;left:30px;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:2px;transition:width 0.5s ease;width:var(--progress-width,0%)}
+.step-dot{width:36px;height:36px;border-radius:50%;background:var(--bg-card);border:2px solid var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.3s;z-index:1;position:relative}
+.step-dot.active{border-color:var(--gold);background:var(--gold);color:var(--bg-darker);box-shadow:0 0 15px rgba(212,168,67,0.4)}
+.step-dot.completed{border-color:var(--green);background:var(--green);color:#fff}
+.step-label{font-size:0.65rem;color:var(--text-muted);text-align:center;margin-top:5px;max-width:70px}
+.step-item{display:flex;flex-direction:column;align-items:center}
+
+.wizard-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:30px;margin-bottom:20px;box-shadow:var(--shadow)}
+.wizard-card h2{font-family:'Cinzel',serif;color:var(--gold);font-size:1.5rem;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.wizard-card h3{font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.1rem;margin:15px 0 10px}
+
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:15px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:0.85rem;color:var(--text-secondary);font-weight:500}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg-darker);border:1px solid var(--border);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:0.9rem;transition:border-color 0.3s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 10px rgba(212,168,67,0.2)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-group select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d4a843' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-group select option{background:var(--bg-darker);color:var(--text-primary)}
+
+.selection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:15px 0}
+.selection-card{background:var(--bg-darker);border:2px solid transparent;border-radius:10px;padding:15px;cursor:pointer;transition:all 0.3s;text-align:center}
+.selection-card:hover{border-color:var(--gold-dark);background:var(--bg-card)}
+.selection-card.selected{border-color:var(--gold);background:rgba(212,168,67,0.1);box-shadow:0 0 15px rgba(212,168,67,0.15)}
+.selection-card h4{font-family:'Cinzel',serif;color:var(--gold);font-size:0.95rem;margin-bottom:4px}
+.selection-card p{font-size:0.75rem;color:var(--text-secondary);line-height:1.4}
+.selection-card .icon{font-size:1.5rem;margin-bottom:5px}
+
+.subrace-select{margin:10px 0 15px;padding:12px;background:rgba(212,168,67,0.05);border:1px solid var(--border);border-radius:8px}
+.subrace-select label{color:var(--gold-light);font-weight:500;margin-right:10px}
+
+.stats-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin:15px 0}
+.stat-box{background:var(--bg-darker);border:1px solid var(--border);border-radius:10px;padding:15px;text-align:center;position:relative}
+.stat-box h5{font-family:'Cinzel',serif;color:var(--gold);font-size:0.9rem;margin-bottom:8px;letter-spacing:1px}
+.stat-value{font-size:2rem;font-weight:700;color:var(--text-primary);margin:5px 0}
+.stat-mod{font-size:0.85rem;color:var(--gold-light);margin-bottom:8px;min-height:20px}
+.stat-btns{display:flex;justify-content:center;gap:8px}
+.stat-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);color:var(--gold);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.stat-btn:hover{background:var(--gold);color:var(--bg-darker)}
+.stat-btn:disabled{opacity:0.3;cursor:not-allowed}
+.stat-cost{font-size:0.7rem;color:var(--text-muted);margin-top:5px}
+.points-remaining{text-align:center;padding:15px;background:linear-gradient(135deg,rgba(212,168,67,0.1),rgba(212,168,67,0.05));border:1px solid var(--border);border-radius:10px;margin-bottom:15px}
+.points-remaining span{font-family:'Cinzel',serif;font-size:1.8rem;color:var(--gold);font-weight:700}
+.points-remaining p{color:var(--text-secondary);margin-top:5px}
+
+.equipment-section{margin:10px 0}
+.equipment-item{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-darker);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.equipment-item input[type="text"]{flex:1;background:transparent;border:none;color:var(--text-primary);font-size:0.9rem}
+.equipment-item input[type="text"]:focus{outline:none}
+.equipment-item .remove-btn{background:var(--red);color:#fff;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;justify-content:center}
+.add-item-btn{background:transparent;border:1px dashed var(--border);color:var(--text-secondary);padding:10px;width:100%;border-radius:8px;cursor:pointer;font-size:0.85rem;transition:all 0.3s;margin-top:5px}
+.add-item-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+.backstory-section textarea{width:100%;min-height:100px;background:var(--bg-darker);border:1px solid var(--border);color:var(--text-primary);padding:12px;border-radius:8px;font-family:'Crimson Text',serif;font-size:1rem;line-height:1.6;resize:vertical}
+.backstory-section textarea:focus{outline:none;border-color:var(--gold)}
+
+.preview-panel{background:var(--bg-darker);border:2px solid var(--gold-dark);border-radius:12px;padding:25px;margin-top:20px}
+.preview-panel h3{font-family:'Cinzel',serif;color:var(--gold);text-align:center;font-size:1.3rem;margin-bottom:20px}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
+.preview-item{padding:10px;background:var(--bg-card);border-radius:8px;border-left:3px solid var(--gold)}
+.preview-item label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:3px}
+.preview-item .value{font-size:0.95rem;color:var(--text-primary);font-weight:500}
+.preview-item .value.gold{color:var(--gold)}
+.preview-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:15px 0}
+.preview-stat{text-align:center;padding:10px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)}
+.preview-stat .label{font-family:'Cinzel',serif;font-size:0.7rem;color:var(--text-muted);letter-spacing:1px}
+.preview-stat .num{font-size:1.5rem;font-weight:700;color:var(--gold)}
+.preview-stat .mod{font-size:0.8rem;color:var(--text-secondary)}
+
+.btn-row{display:flex;gap:10px;justify-content:center;margin-top:25px;flex-wrap:wrap}
+.btn{padding:12px 28px;border-radius:8px;font-family:'Cinzel',serif;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all 0.3s;border:none;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg-darker);box-shadow:0 4px 15px rgba(212,168,67,0.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(212,168,67,0.4)}
+.btn-secondary{background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.btn-success{background:linear-gradient(135deg,var(--green),#1e8449);color:#fff}
+.btn-success:hover{transform:translateY(-2px)}
+.btn-danger{background:var(--red);color:#fff}
+
+.hidden{display:none!important}
+.trait-tag{display:inline-block;background:rgba(212,168,67,0.15);border:1px solid var(--border);color:var(--gold-light);padding:3px 10px;border-radius:20px;font-size:0.75rem;margin:2px}
+.custom-input-row{display:flex;gap:10px;margin-top:10px}
+.custom-input-row input{flex:1}
+.custom-input-row .btn{padding:10px 16px;font-size:0.8rem}
+
+@media(max-width:768px){
+.app{padding:10px}
+.wizard-card{padding:15px}
+.progress-bar{flex-wrap:wrap;gap:5px;justify-content:center}
+.step-item{transform:scale(0.85)}
+.step-label{display:none}
+.form-row{grid-template-columns:1fr}
+.selection-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.stats-container{grid-template-columns:repeat(2,1fr)}
+.preview-stats{grid-template-columns:repeat(3,1fr)}
+.btn{padding:10px 18px;font-size:0.85rem}
+}
+
+.scroll-top{position:fixed;bottom:20px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--gold);color:var(--bg-darker);border:none;font-size:1.2rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:100;box-shadow:var(--shadow)}
+.scroll-top.visible{display:flex}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>DUNGEONS & DRAGONS 5e</h1>
+<p>Creador de Personajes</p>
+</header>
+
+<div class="progress-container">
+<div class="progress-bar" id="progressBar">
+<div class="step-item"><div class="step-dot active" data-step="1">1</div><div class="step-label">Básico</div></div>
+<div class="step-item"><div class="step-dot" data-step="2">2</div><div class="step-label">Raza</div></div>
+<div class="step-item"><div class="step-dot" data-step="3">3</div><div class="step-label">Clase</div></div>
+<div class="step-item"><div class="step-dot" data-step="4">4</div><div class="step-label">Estadísticas</div></div>
+<div class="step-item"><div class="step-dot" data-step="5">5</div><div class="step-label">Trasfondo</div></div>
+<div class="step-item"><div class="step-dot" data-step="6">6</div><div class="step-label">Equipo</div></div>
+<div class="step-item"><div class="step-dot" data-step="7">7</div><div class="step-label">Historia</div></div>
+<div class="step-item"><div class="step-dot" data-step="8">8</div><div class="step-label">Revisar</div></div>
+</div>
+</div>
+
+<div id="step1" class="wizard-card step-content">
+<h2>1. Información Básica</h2>
+<div class="form-row">
+<div class="form-group"><label>Nombre del Personaje</label><input type="text" id="charName" placeholder="Ej: Thorin Escudodealma"></div>
+<div class="form-group"><label>Alineamiento</label><select id="alignment">
+<option value="">Seleccionar...</option>
+<option value="Legal Bueno">Legal Bueno</option><option value="Neutral Bueno">Neutral Bueno</option><option value="Caótico Bueno">Caótico Bueno</option>
+<option value="Legal Neutral">Legal Neutral</option><option value="Neutral">Neutral Verdadero</option><option value="Caótico Neutral">Caótico Neutral</option>
+<option value="Legal Malvado">Legal Malvado</option><option value="Neutral Malvado">Neutral Malvado</option><option value="Caótico Malvado">Caótico Malvado</option>
+</select></div>
+<div class="form-group"><label>Nivel</label><input type="number" id="charLevel" min="1" max="20" value="1"></div>
+</div>
+<div class="custom-input-row">
+<div class="form-group" style="flex:1"><label>Alineamiento personalizado</label><input type="text" id="customAlignment" placeholder="O escribir alineamiento personalizado..."></div>
+</div>
+</div>
+
+<div id="step2" class="wizard-card step-content hidden">
+<h2>2. Selecciona tu Raza</h2>
+<div class="selection-grid" id="raceGrid"></div>
+<div id="subraceSection" class="subrace-select hidden"><label>Subraza:</label><select id="subraceSelect"></select></div>
+<div id="raceDetails" style="margin-top:15px"></div>
+</div>
+
+<div id="step3" class="wizard-card step-content hidden">
+<h2>3. Selecciona tu Clase</h2>
+<div class="selection-grid" id="classGrid"></div>
+<div id="subclassSection" class="subrace-select hidden"><label>Subclase:</label><select id="subclassSelect"></select></div>
+<div id="classDetails" style="margin-top:15px"></div>
+</div>
+
+<div id="step4" class="wizard-card step-content hidden">
+<h2>4. Puntuación de Estadísticas (Point Buy)</h2>
+<div class="points-remaining"><p>Puntos Restantes</p><span id="pointsLeft">27</span></div>
+<div class="stats-container" id="statsContainer"></div>
+</div>
+
+<div id="step5" class="wizard-card step-content hidden">
+<h2>5. Trasfondo</h2>
+<div class="selection-grid" id="backgroundGrid"></div>
+<div id="backgroundDetails" style="margin-top:15px"></div>
+</div>
+
+<div id="step6" class="wizard-card step-content hidden">
+<h2>6. Equipo</h2>
+<div id="autoEquipment" class="equipment-section"></div>
+<h3>Equipo Adicional</h3>
+<div id="customEquipment" class="equipment-section"></div>
+<button class="add-item-btn" onclick="addCustomEquipment()">+ Agregar objeto personalizado</button>
+<div class="form-row" style="margin-top:15px">
+<div class="form-group"><label>Oro Inicial</label><input type="number" id="startingGold" value="15" min="0"></div>
+</div>
+</div>
+
+<div id="step7" class="wizard-card step-content hidden">
+<h2>7. Historia y Trasfondo</h2>
+<div class="backstory-section">
+<div class="form-row">
+<div class="form-group"><label>Personalidad</label><textarea id="personality" placeholder="Describe la personalidad de tu personaje..."></textarea></div>
+<div class="form-group"><label>Ideales</label><textarea id="ideal" placeholder="¿Qué ideal guía a tu personaje?"></textarea></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Vínculos</label><textarea id="bond" placeholder="¿Qué laza a tu personaje con el mundo?"></textarea></div>
+<div class="form-group"><label>Defectos</label><textarea id="flaw" placeholder="¿Cuáles son las debilidades de tu personaje?"></textarea></div>
+</div>
+<div class="form-group"><label>Historia completa</label><textarea id="backstory" style="min-height:150px;font-family:'Crimson Text',serif;font-size:1.05rem" placeholder="La historia de tu personaje... ¿De dónde viene? ¿Qué lo impulsa? ¿Qué busca?"></textarea></div>
+</div>
+</div>
+
+<div id="step8" class="wizard-card step-content hidden">
+<h2>8. Revisar y Exportar</h2>
+<div class="preview-panel" id="previewPanel"></div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="copyJSON()">📋 Copiar JSON</button>
+<button class="btn btn-success" onclick="downloadJSON()">⬇ Descargar JSON</button>
+</div>
+</div>
+
+<div class="btn-row" id="navButtons">
+<button class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)">← Anterior</button>
+<button class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">Siguiente →</button>
+</div>
+</div>
+
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+const RACES = {
+humano:{name:"Humano",speed:30,traits:["Versátil"],languages:["Común","Uno adicional"],bonuses:{},subraces:{}},
+elfo:{name:"Elfo",speed:30,traits:["Visión en la oscuridad 60pies","Percepción Aguda","Ancestral"],languages:["Común","Élfico"],bonuses:{dex:2},subraces:{
+alto:{name:"Alto Elfo",traits:["Hechicería","Arco de guerra"],bonuses:{int:1}},
+bosque:{name:"Elfo del Bosque",traits:["Velocidad Extra","Camuflaje Natural"],bonuses:{wis:1}},
+drow:{name:"Drow (Elfo Oscuro)",traits:["Hechicería Superior","Sensibilidad a la luz","Ataque venenoso"],bonuses:{cha:1}},
+marino:{name:"Elfo Marino",traits:["Acuático","Nado"],bonuses:{wis:1}}
+}},
+enano:{name:"Enano",speed:25,traits:["Visión en la oscuridad 60pies","Resiliencia Enana","Maestría con armas"],languages:["Común","Enano"],bonuses:{con:2},subraces:{
+colina:{name:"Enano de Colina",traits:["Tenacidad"],bonuses:{wis:1}},
+montaña:{name:"Enano de Montaña",traits:["Montañés"],bonuses:{str:2}}
+}},
+mediano:{name:"Mediano",speed:25,traits:["Afortunado","Valiente"],languages:["Común","Mediano"],bonuses:{},subraces:{
+piesligeros:{name:"Pies Ligeros",traits:["Furtivo"],bonuses:{dex:1}},
+robusto:{name:"Robusto",traits:["Resistente"],bonuses:{con:1}}
+}},
+dracónido:{name:"Dracónido",speed:30,traits:["Arma de Piel","Intimidación"],languages:["Común","Dracónico"],bonuses:{str:1,con:1},subraces:{}},
+gnomo:{name:"Gnomo",speed:30,traits:["Visión en la oscuridad 60pies","Gnomesco"],languages:["Común","Gnómico"],bonuses:{int:2},subraces:{
+bosque:{name:"Gnomo del Bosque",traits:["Hablistas"],bonuses:{dex:1}},
+roca:{name:"Gnomo de Roca",traits:["Ingeniero"],bonuses:{con:1}}
+}},
+semiorco:{name:"Semiorco",speed:30,traits:["Visión en la oscuridad 60pies","Resistencia incansable"],languages:["Común","Orc"],bonuses:{str:2,con:1},subraces:{}},
+tiefling:{name:"Tiefling",speed:30,traits:["Visión en la oscuridad 60pies","Resistencia infernal"],languages:["Común","Infernal"],bonuses:{cha:2,int:1},subraces:{}},
+aasimar:{name:"Aásimar",speed:30,traits:["Visión en la oscuridad 60pies","Hands of the Healer"],languages:["Común","Celestial"],bonuses:{cha:2},subraces:{
+protector:{name:"Protector",traits:["Iluminación Radiante"],bonuses:{wis:1}},
+súcubo:{name:"Súcubo",traits:["Drenar vida"],bonuses:{str:1}},
+scion:{name:"Scion of the Outer Planes",traits:["Combate Evolved"],bonuses:{con:1}}
+}},
+goliath:{name:"Goliath",speed:30,traits:["Competitivo","Piel de piedra"],languages:["Común","Gigante"],bonuses:{str:2,con:1},subraces:{}},
+tabaxi:{name:"Tabaxi",speed:30,traits:["Visión en la oscuridad 60pies","Garras felinas"],languages:["Común","Uno adicional"],bonuses:{dex:2,cha:1},subraces:{}},
+firbolg:{name:"Firbolg",speed:30,traits:["Arma natural","Secretos de la naturaleza"],languages:["Común","Élfico","Gigante"],bonuses:{wis:2,str:1},subraces:{}},
+kenku:{name:"Kenku",speed:30,traits:["Maestro del oficio","Clonar sonido"],languages:["Común","Auran"],bonuses:{dex:2,wis:1},subraces:{}},
+tortuga:{name:"Tortuga",speed:30,traits:["Caparazón","Nado"],languages:["Común","Aquan"],bonuses:{con:2},subraces:{}},
+genasi:{name:"Genasi",speed:30,traits:["Resistencia elemental"],languages:["Común","Primordial"],bonuses:{con:2},subraces:{}},
+centauro:{name:"Centauro",speed:40,traits:["Montar","Cuerno"],languages:["Común","Élfico"],bonuses:{str:2,wis:1},subraces:{}},
+minotauro:{name:"Minotauro",speed:30,traits:["Cuerno","Embestida"],languages:["Común","Gigante"],bonuses:{str:2,con:1},subraces:{}},
+goblin:{name:"Goblin",speed:30,traits:["Visión en la oscuridad 60pies","Furia del pequeño"],languages:["Común","Goblin"],bonuses:{dex:2,con:1},subraces:{}},
+hobgoblin:{name:"Hobgoblin",speed:30,traits:["Visión en la oscuridad 60pies","Guerra training"],languages:["Común","Goblin"],bonuses:{con:2,int:1},subraces:{}},
+kobold:{name:"Kobold",speed:30,traits:["Visión en la oscuridad 60pies","Trampa packs"],languages:["Común","Goblin"],bonuses:{dex:2},subraces:{}},
+orc:{name:"Orc",speed:30,traits:["Visión en la oscuridad 60pies","Impulso furioso"],languages:["Común","Orc"],bonuses:{str:2,con:1},subraces:{}},
+gnoll:{name:"Gnoll",speed:30,traits:["Visión en la oscuridad 60pies","Rampage"],languages:["Común","Gnoll"],bonuses:{str:2,con:1,cha:1},subraces:{}},
+vampiro:{name:"Vampiro",speed:30,traits:["Drenaje de sangre","Sentidos vampíricos","Velocidad sobrenatural","Sensibilidad a la luz solar","Inmortalidad parcial"],languages:["Común","Infernal"],bonuses:{str:2,cha:2},subraces:{}},
+licantropo:{name:"Licántropo",speed:35,traits:["Forma bestial","Sentidos agudos","Furia bestial","Vulnerabilidad a la plata","Resistencia natural"],languages:["Común","Gnoll"],bonuses:{str:2,con:2},subraces:{}},
+feerico:{name:"Féérico",speed:30,traits:["Magia innata","Ancestro feérico","Iluminación feérica","Resistencia al encantamiento","Polvo de hadas"],languages:["Común","Élfico"],bonuses:{dex:2,cha:2},subraces:{}},
+semi_vampiro:{name:"Semi Vampiro",speed:30,traits:["Drenaje de sangre leve","Sentidos mejorados","Sensibilidad parcial al sol","Grimorio vampírico"],languages:["Común","Infernal"],bonuses:{str:1,cha:1},subraces:{}},
+semi_licantropo:{name:"Semi Licántropo",speed:30,traits:["Transformación parcial","Olfato agudo","Furia controlada","Resistencia a enfermedades"],languages:["Común","Gnoll"],bonuses:{str:1,con:1},subraces:{}},
+semi_feerico:{name:"Semi Féérico",speed:30,traits:["Magia menor","Ancestro feérico parcial","Resistencia al encantamiento leve"],languages:["Común","Élfico"],bonuses:{dex:1,cha:1},subraces:{}},
+semi_dragonido:{name:"Semi Dracónido",speed:30,traits:["Sangre de dragón","Aliento débil","Escamas menores","Resistencia elemental parcial"],languages:["Común","Dracónico"],bonuses:{str:1,cha:1},subraces:{}},
+fantasma:{name:"Fantasma",speed:30,traits:["Incorpóreo","Aterrador","Passthrough","Ethereal Sight","Fuel de vida limitado","Vulnerabilidad a radiante"],languages:["Común","Élfico"],bonuses:{dex:2,int:2},subraces:{}},
+semi_fantasma:{name:"Semi Fantasma",speed:30,traits:["Forma etérea parcial","Intangibilidad limitada","Visión espectral","Resistencia a daño necrótico"],languages:["Común"],bonuses:{dex:1,int:1},subraces:{}}
+};
+
+const CLASSES = {
+guerrero:{name:"Guerrero",hitDie:10,primary:["str","con"],saves:["str","con"],proficiencies:["Armas marciales","Armas simples","Armadura ligera","Armadura media","Armadura pesada","Escudos"],subclasses:{
+campeón:{name:"Campeón",features:["Golpe Crítico mejorado"]},
+"maestro batalla":{name:"Maestro de Batalla",features:["Retribución","Riposte","Postura de combate"]},
+psiwarrior:{name:"Psiwarrior",features:["Tercer Ojo","Proyección Psíquica"]},
+"caballero arcane":{name:"Caballero Arcano",features:["Vínculo Arcano","Espada Arcana"]}
+}},
+mago:{name:"Mago",hitDie:6,primary:["int"],saves:["int","wis"],proficiencies:["Dagas","Dardos","Jabalinas","Bastones","Ballestas ligeras"],subclasses:{
+evocador:{name:"Evocador",features:["Potencia Arcana"]},
+ilusionista:{name:"Ilusionista",features:["Ilusión Pirotécnica"]},
+abjurador:{name:"Abjurador",features:["Escudo Arcano"]},
+adivino:{name:"Adivino",features:["Adivinación"]},
+conjurador:{name:"Conjurador",features:["Escultor de Magia"]},
+nigromancia:{name:"Nigromancia",features:["Poder sobre la muerte"]},
+transmutacion:{name:"Transmutación",features:["Transformar materia","Alterar la realidad"]},
+encantamiento:{name:"Encantamiento",features:["Dominar mentes","Controlar voluntades"]}
+}},
+pícaro:{name:"Pícaro",hitDie:8,primary:["dex"],saves:["dex","int"],proficiencies:["Herramientas de ladrón","Armas simples","Ballesta de mano","Espada corta","Espada larga","Sables"],subclasses:{
+asesino:{name:"Asesino",features:["Falsas identidades","Ataque letal"]},
+ladrón:{name:"Ladrón",features:["Habilidades de ladrón"]},
+"monje sombra":{name:"Monje Sombra",features:["Artes marciales sombrías"]},
+"acólito sombra":{name:"Acólito Sombra",features:["Magia sombría"]}
+}},
+clérigo:{name:"Clérigo",hitDie:8,primary:["wis"],saves:["wis","cha"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples"],subclasses:{
+vida:{name:"Vida",features:["Canalizar divinidad: Preserve Life"]},
+luz:{name:"Luz",features:["Canalizar divinidad: Radiance of the Dawn"]},
+tempestad:{name:"Tempestad",features:["Canalizar divinidad: Destructive Wrath"]},
+combate:{name:"Combate",features:["Canalizar divinidad: Sacred Weapon"]},
+forge:{name:"Forge",features:["Canalizar divinidad: Blessing of the Forge"]}
+}},
+explorador:{name:"Explorador",hitDie:10,primary:["dex","wis"],saves:["dex","str"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples","Armas marciales"],subclasses:{
+cazador:{name:"Cazador",features:["Colossal Slayer","Giant Killer","Volley"]},
+guardabosques:{name:"Guardabosques",features:["Natural Explorer"]},
+perito:{name:"Perito",features:["Remarkable Athlete","Reliable Talent"]}
+}},
+bardo:{name:"Bardo",hitDie:8,primary:["cha"],saves:["dex","cha"],proficiencies:["Armas simples","Ballesta de mano","Espada corta","Espada larga","Sables"],subclasses:{
+conocimiento:{name:"Conocimiento",features:["Mente del sage"]},
+valor:{name:"Valor",features:["Armas marciales"]},
+slavos:{name:"Savant",features:["Magia extra"]}
+}},
+bárbaro:{name:"Bárbaro",hitDie:12,primary:["str"],saves:["str","con"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples","Armas marciales"],subclasses:{
+berserker:{name:"Berserker",features:["Frenzy"]},
+"tótem":{name:"Tótem del Guerrero",features:["Espíritu animal"]},
+"totem guerrero":{name:"Totem Guerrero",features:["Viaje espiritual"]},
+primordial:{name:"Primal Path",features:["Camino primordial"]}
+}},
+paladín:{name:"Paladín",hitDie:10,primary:["str","cha"],saves:["wis","cha"],proficiencies:["Armadura ligera","Armadura media","Armadura pesada","Escudos","Armas simples","Armas marciales"],subclasses:{
+devoción:{name:"Devoción",features:["Arma sagrada"]},
+venganza:{name:"Venganza",features:["Abjure Enemy"]},
+ancianos:{name:"de los Ancianos",features:["Venganza Anciana"]}
+}},
+brujo:{name:"Brujo",hitDie:8,primary:["cha"],saves:["wis","cha"],proficiencies:["Armas simples","Ballesta de mano","Espada corta","Espada larga","Sables"],subclasses:{
+arcano:{name:"Arcano",features:["Mecánica del Pacto"]},
+celestial:{name:"Celestial",features:["Ternura celestial"]},
+infernal:{name:"Infernal",features:["Pacto con demonio"]},
+"gran poder":{name:"Gran Poder",features:["El Gran Poder"]}
+}},
+hechicero:{name:"Hechicero",hitDie:6,primary:["cha"],saves:["con","cha"],proficiencies:["Dagas","Dardos","Jabalinas","Bastones","Ballestas ligeras"],subclasses:{
+draconico:{name:"Dracónico",features:["Ancestral draconico"]},
+feérico:{name:"Feérico",features:["Llamada feérica"]},
+"tormenta salvaje":{name:"Tormenta Salvaje",features:["Magia salvaje"]}
+}},
+druida:{name:"Druida",hitDie:8,primary:["wis"],saves:["int","wis"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples"],subclasses:{
+tierra:{name:"Círculo de la Tierra",features:["Escritura natural"]},
+luna:{name:"Círculo de la Luna",features:["Wild Shape mejorado"]}
+}},
+monje:{name:"Monje",hitDie:8,primary:["dex","wis"],saves:["dex","str"],proficiencies:["Artes marciales","Armas simples","Espadas cortas"],subclasses:{
+"mano abierta":{name:"Mano Abierta",features:["Técnica de la Mano Abierta"]},
+sombra:{name:"Sombra",features:["Artes sombrías"]},
+sol:{name:"Sol",features:["Puño del Sol"]},
+soterología:{name:"Soteriología",features:["Don de la soteriología"]}
+}},
+artifice:{name:"Artifice",hitDie:8,primary:["int"],saves:["con","int"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples","Herramientas"],subclasses:{
+artillero:{name:"Artillero",features:["Explosivos mejorados"]},
+batallero:{name:"Batallero",features:["Maniobras marciales"]},
+erudito:{name:"Erudito",features:["Infuse Magic"]}
+}},
+alquimista:{name:"Alquimista",hitDie:8,primary:["int"],saves:["int","con"],proficiencies:["Armadura ligera","Escudos","Armas simples","Ballesta ligera"],subclasses:{
+alquimia_pura:{name:"Alquimia Pura",features:["Pociones supremas","Transmutación"]},
+quimico_belico:{name:"Químico Bélico",features:["Explosivos y ácidos de guerra"]}
+}},
+nigromante:{name:"Nigromante",hitDie:6,primary:["int"],saves:["int","wis"],proficiencies:["Dagas","Bastones"],subclasses:{
+señor_no_muertos:{name:"Señor de No-Muertos",features:["Comandar no-muertos"]},
+profano:{name:"Profano",features:["Canalizar energía oscura"]}
+}},
+templar:{name:"Templar",hitDie:10,primary:["wis"],saves:["wis","cha"],proficiencies:["Todas las armaduras","Escudos","Armas simples","Armas marciales"],subclasses:{
+templar_sagrado:{name:"Templar Sagrado",features:["Escudo de fe","Curación divina"]},
+templar_oscuro:{name:"Templar Oscuro",features:["Poder prohibido","Corrupción"]}
+}},
+gladiador:{name:"Gladiador",hitDie:10,primary:["str"],saves:["str","dex"],proficiencies:["Armadura ligera","Armadura media","Armas simples","Armas marciales","Redes","Tridentes"],subclasses:{
+maestro_arena:{name:"Maestro de Arena",features:["Estilos de lucha"]},
+campeón_popular:{name:"Campeón Popular",features:["Inspiración de multitudes"]}
+}},
+ejecutor:{name:"Ejecutor",hitDie:10,primary:["str"],saves:["str","con"],proficiencies:["Todas las armaduras","Escudos","Armas simples","Armas marciales"],subclasses:{
+verdugo:{name:"Verdugo",features:["Golpe de gracia","Ejecución"]},
+jurez:{name:"Justiciero",features:["Caza del criminal","Sentencia"]}
+}},
+sanador:{name:"Sanador",hitDie:8,primary:["wis"],saves:["wis","cha"],proficiencies:["Armadura ligera","Escudos","Armas simples"],subclasses:{
+manos_sagradas:{name:"Manos Sagradas",features:["Curación superior","Milagros"]},
+partero:{name:"Partero",features:["Venenos y antídotos","Herbalismo"]}
+}},
+inquisidor:{name:"Inquisidor",hitDie:8,primary:["wis"],saves:["wis","int"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples","Armas marciales"],subclasses:{
+cazador_herejes:{name:"Cazador de Herejes",features:["Expulsar demonios","Detectar mentiras"]},
+exorcista:{name:"Exorcista",features:["Rituales de exorcismo","Protección sagrada"]}
+}},
+guerrero_arcano:{name:"Guerrero Arcano",hitDie:10,primary:["int"],saves:["str","int"],proficiencies:["Todas las armaduras","Escudos","Armas simples","Armas marciales"],subclasses:{
+batallon_arcane:{name:"Batallón Arcano",features:["Runas de guerra","Armas mágicas"]},
+guardian_magico:{name:"Guardián Mágico",features:["Protección arcanis","Escudos de poder"]}
+}},
+corsario:{name:"Corsario",hitDie:8,primary:["dex"],saves:["dex","cha"],proficiencies:["Armadura ligera","Armadura media","Armas simples","Armas marciales","Mosquetones"],subclasses:{
+capitan_pirata:{name:"Capitán Pirata",features:["Liderazgo marítimo","Tripulación leal"]},
+corsario_oscuro:{name:"Corsario Oscuro",features:["Maldiciones marinas","Poder del abismo"]}
+}},
+cazador_conjurado:{name:"Cazador de Conjurados",hitDie:10,primary:["dex"],saves:["dex","wis"],proficiencies:["Armadura ligera","Armadura media","Escudos","Armas simples","Armas marciales"],subclasses:{
+cazador_sombras:{name:"Cazador de Sombras",features:["Rastrear criaturas extradimensionales"]},
+acechante:{name:"Acechante",features:["Trampas","Emboscadas","Caza silenciosa"]}
+}}
+};
+
+const BACKGROUNDS = {
+acólito:{name:"Acolito",skills:["Persuasión","Religión"],tools:["Incienso"],languages:2,gold:15,equipment:["Vestimentas","Símbolo sagrado","5 varas de incienso","Vestimentas","Pantalones","Cinturón","Monedas"]},
+criminal:{name:"Criminal",skills:["Engaño","Sigilo"],tools:["Juego de dados o naipes","Disfraz"],languages:0,gold:15,equipment:["Palanca","Máscara","Ropa oscura con capucha"]},
+erudito:{name:"Erudito",skills:["Historia","Investigación"],tools:["Un instrumento"],languages:2,gold:10,equipment:["Botella de tinta","Pluma","Pequeño cuchillo","Carta de un colega","Ropa común","Pantalones"]},
+"héroe del pueblo":{name:"Héroe del Pueblo",skills:["Habilidades manuales","Persuasión"],tools:["Artesano","Vestimentas"],languages:0,gold:10,equipment:["Artículo del oficio","Ropa común","Cinturón"]},
+noble:{name:"Noble",skills:["Historia","Persuasión"],tools:["Juego de dados o naipes","Un instrumento"],languages:1,gold:25,equipment:["Ropa fina","Anillo de sello","Pluma","Pergamino"]},
+soldado:{name:"Soldado",skills:["Atletismo","Intimidación"],tools:["Un juego","Disfraz"],languages:0,gold:10,equipment:["Insignia","Moneda de recuerdo","Ropa común","Cinturón"]},
+charlatán:{name:"Charlatán",skills:["Engaño","Persuasión"],tools:["Herramientas de falsificación","Disfraz"],languages:0,gold:15,equipment:["Juego de dados o naipes","Disfraz","Artículos de engaño"]},
+ermitaño:{name:"Ermitaño",skills:["Medicina","Religión"],tools:["Herboristería"],languages:2,gold:5,equipment:["Botella de taza","Manta","Ropa común","Artículos de herboristería"]},
+forastero:{name:"Forastero",skills:["Atletismo","Supervivencia"],tools:["Una artesano","Instrumento musical"],languages:2,gold:10,equipment:["Ropa de viaje","Lanza","Artículos de caza"]},
+"artesano gremial":{name:"Artesano del Gremio",skills:["Habilidades manuales","Persuasión"],tools:["Herramientas de artesano","Vestimentas"],languages:1,gold:15,equipment:["Herramientas de artesano","Ropa común","Cinturón"]},
+marinero:{name:"Marinero",skills:["Atletismo","Persuasión"],tools:["Instrumento musical","Navegación"],languages:0,gold:10,equipment:["Espada corta","Mapa de navegación","Moneda"]},
+espía:{name:"Espía",skills:["Engaño","Sigilo"],tools:["Herramientas de espía"],languages:0,gold:10,equipment:["Espada corta","Ropa oscura","Kit de espionaje"]},
+gladiador:{name:"Gladiador",skills:["Atletismo","Persuasión"],tools:["Instrumento musical","Artesano"],languages:0,gold:15,equipment:["Arma exótica","Ropa común","Cinturón"]},
+sabio:{name:"Sabio",skills:["Historia","Investigación"],tools:["Herramientas de espía"],languages:2,gold:10,equipment:["Botella de tinta","Pluma","Pequeño cuchillo","Carta","Ropa común"]},
+huérfano:{name:"Huérfano",skills:["Habilidades manuales","Sigilo"],tools:["Herramientas de ladrón"],languages:1,gold:5,equipment:["Cuchillo","Ropa común","Pieza de fortuna"]}
+};
+
+const STAT_COST = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const STAT_NAMES = {str:"Fuerza",dex:"Destreza",con:"Constitución",int:"Inteligencia",wis:"Sabiduría",cha:"Carisma"};
+const STAT_KEYS = ["str","dex","con","int","wis","cha"];
+
+let currentStep = 1;
+let charData = {
+name:"",race:"",raceLabel:"",subrace:"",class:"",classLabel:"",subclass:"",background:"",alignment:"",level:1,
+stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
+mods:{str:0,dex:0,con:0,int:0,wis:0,cha:0},
+hp:{current:10,max:10,temp:0},ac:10,speed:30,proficiencyBonus:2,saves:[],hitDie:10,
+traits:[],backstory:"",personality:"",ideal:"",bond:"",flaw:"",conditions:[],gold:15,spellcasting:false,inventory:[]
+};
+let pointsSpent = 0;
+let customEquipmentItems = [];
+
+function getMod(score){return Math.floor((score-10)/2)}
+function getModStr(score){const m=getMod(score);return m>=0?`+${m}`:`${m}`}
+
+function updatePoints(){
+let spent=0;
+STAT_KEYS.forEach(k=>{spent+=STAT_COST[charData.stats[k]]});
+pointsSpent=27-spent;
+document.getElementById('pointsLeft').textContent=pointsSpent;
+document.getElementById('pointsLeft').style.color=pointsSpent<0?'#c0392b':pointsSpent===0?'#27ae60':'';
+}
+
+function changeStat(key,delta){
+const newVal=charData.stats[key]+delta;
+if(newVal<8||newVal>15)return;
+const costNew=STAT_COST[newVal],costOld=STAT_COST[charData.stats[key]];
+if(delta>0&&pointsSpent-(costNew-costOld)<0)return;
+charData.stats[key]=newVal;
+charData.mods[key]=getMod(newVal);
+updateStatsDisplay();
+updatePoints();
+}
+
+function updateStatsDisplay(){
+STAT_KEYS.forEach(k=>{
+const el=document.getElementById(`stat-${k}`);
+if(el){
+el.querySelector('.stat-value').textContent=charData.stats[k];
+el.querySelector('.stat-mod').textContent=getModStr(charData.stats[k]);
+el.querySelector('.stat-cost').textContent=`Costo: ${STAT_COST[charData.stats[k]]}`;
+}
+});
+}
+
+function initStats(){
+const c=document.getElementById('statsContainer');
+c.innerHTML='';
+STAT_KEYS.forEach(k=>{
+c.innerHTML+=`<div class="stat-box" id="stat-${k}">
+<h5>${STAT_NAMES[k]}</h5>
+<div class="stat-value">${charData.stats[k]}</div>
+<div class="stat-mod">${getModStr(charData.stats[k])}</div>
+<div class="stat-btns">
+<button class="stat-btn" onclick="changeStat('${k}',-1)">−</button>
+<button class="stat-btn" onclick="changeStat('${k}',1)">+</button>
+</div>
+<div class="stat-cost">Costo: ${STAT_COST[charData.stats[k]]}</div>
+</div>`;
+});
+updatePoints();
+}
+
+function initRaceGrid(){
+const g=document.getElementById('raceGrid');
+g.innerHTML='';
+Object.keys(RACES).forEach(k=>{
+const r=RACES[k];
+g.innerHTML+=`<div class="selection-card" data-race="${k}" onclick="selectRace('${k}')">
+<h4>${r.name}</h4>
+<p>Vel: ${r.speed}pies | ${r.traits[0]||'—'}</p>
+</div>`;
+});
+}
+
+function selectRace(k){
+document.querySelectorAll('#raceGrid .selection-card').forEach(c=>c.classList.remove('selected'));
+document.querySelector(`[data-race="${k}"]`).classList.add('selected');
+charData.race=k;charData.raceLabel=RACES[k].name;
+const sub=Object.keys(RACES[k].subraces);
+const ss=document.getElementById('subraceSection');
+const sd=document.getElementById('raceDetails');
+if(sub.length>0){
+ss.classList.remove('hidden');
+const sel=document.getElementById('subraceSelect');
+sel.innerHTML='<option value="">Sin subraza</option>'+sub.map(s=>`<option value="${s}">${RACES[k].subraces[s].name}</option>`).join('');
+charData.subrace='';
+sd.innerHTML=`<h3>${RACES[k].name}</h3>
+<p style="color:var(--text-secondary);margin:8px 0">Velocidad: ${RACES[k].speed}pies</p>
+<p style="color:var(--text-secondary);margin:4px 0">Bonificaciones: ${Object.entries(RACES[k].bonuses).map(([s,v])=>`${STAT_NAMES[s]} +${v}`).join(', ')||'Ninguna'}</p>
+<div style="margin:8px 0">${RACES[k].traits.map(t=>`<span class="trait-tag">${t}</span>`).join('')}</div>
+<p style="color:var(--text-muted);font-size:0.85rem">Idiomas: ${RACES[k].languages.join(', ')}</p>`;
+}else{
+ss.classList.add('hidden');charData.subrace='';
+sd.innerHTML=`<h3>${RACES[k].name}</h3>
+<p style="color:var(--text-secondary);margin:8px 0">Velocidad: ${RACES[k].speed}pies</p>
+<p style="color:var(--text-secondary);margin:4px 0">Bonificaciones: ${Object.entries(RACES[k].bonuses).map(([s,v])=>`${STAT_NAMES[s]} +${v}`).join(', ')||'Ninguna'}</p>
+<div style="margin:8px 0">${RACES[k].traits.map(t=>`<span class="trait-tag">${t}</span>`).join('')}</div>
+<p style="color:var(--text-muted);font-size:0.85rem">Idiomas: ${RACES[k].languages.join(', ')}</p>`;
+}
+}
+
+function initClassGrid(){
+const g=document.getElementById('classGrid');
+g.innerHTML='';
+Object.keys(CLASSES).forEach(k=>{
+const c=CLASSES[k];
+g.innerHTML+=`<div class="selection-card" data-class="${k}" onclick="selectClass('${k}')">
+<h4>${c.name}</h4>
+<p>d${c.hitDie} | ${c.primary.map(s=>STAT_NAMES[s]).join(', ')}</p>
+</div>`;
+});
+}
+
+function selectClass(k){
+document.querySelectorAll('#classGrid .selection-card').forEach(c=>c.classList.remove('selected'));
+document.querySelector(`[data-class="${k}"]`).classList.add('selected');
+charData.class=k;charData.classLabel=CLASSES[k].name;
+const sub=Object.keys(CLASSES[k].subclasses);
+const ss=document.getElementById('subclassSection');
+const sd=document.getElementById('classDetails');
+if(sub.length>0){
+ss.classList.remove('hidden');
+const sel=document.getElementById('subclassSelect');
+sel.innerHTML='<option value="">Sin subclase</option>'+sub.map(s=>`<option value="${s}">${CLASSES[k].subclasses[s].name}</option>`).join('');
+charData.subclass='';
+}else{ss.classList.add('hidden');charData.subclass='';}
+sd.innerHTML=`<h3>${CLASSES[k].name}</h3>
+<p style="color:var(--text-secondary);margin:8px 0">Dado de Golpe: d${CLASSES[k].hitDie} | Salvaciones: ${CLASSES[k].saves.map(s=>STAT_NAMES[s]).join(', ')}</p>
+<p style="color:var(--text-secondary);margin:4px 0">Habilidades principales: ${CLASSES[k].primary.map(s=>STAT_NAMES[s]).join(', ')}</p>
+<div style="margin:8px 0">${CLASSES[k].proficiencies.map(p=>`<span class="trait-tag">${p}</span>`).join('')}</div>
+${sub.length?`<div style="margin:10px 0"><strong style="color:var(--gold-light)">Subclases disponibles:</strong><br>${sub.map(s=>`<span class="trait-tag">${CLASSES[k].subclasses[s].name}</span>`).join(' ')}</div>`:''}`;
+}
+
+function initBackgroundGrid(){
+const g=document.getElementById('backgroundGrid');
+g.innerHTML='';
+Object.keys(BACKGROUNDS).forEach(k=>{
+const b=BACKGROUNDS[k];
+g.innerHTML+=`<div class="selection-card" data-bg="${k}" onclick="selectBackground('${k}')">
+<h4>${b.name}</h4>
+<p>${b.skills.join(', ')}</p>
+</div>`;
+});
+}
+
+function selectBackground(k){
+document.querySelectorAll('#backgroundGrid .selection-card').forEach(c=>c.classList.remove('selected'));
+document.querySelector(`[data-bg="${k}"]`).classList.add('selected');
+charData.background=BACKGROUNDS[k].name;
+charData.gold=BACKGROUNDS[k].gold;
+document.getElementById('startingGold').value=BACKGROUNDS[k].gold;
+const sd=document.getElementById('backgroundDetails');
+sd.innerHTML=`<h3>${BACKGROUNDS[k].name}</h3>
+<p style="color:var(--text-secondary);margin:8px 0">Habilidades: ${BACKGROUNDS[k].skills.join(', ')}</p>
+<p style="color:var(--text-secondary)">Herramientas: ${BACKGROUNDS[k].tools.join(', ')}</p>
+${BACKGROUNDS[k].languages?`<p style="color:var(--text-secondary)">Idiomas adicionales: ${BACKGROUNDS[k].languages}</p>`:''}
+<p style="color:var(--text-secondary)">Oro: ${BACKGROUNDS[k].gold} po</p>
+<div style="margin:10px 0"><strong style="color:var(--gold-light)">Equipo:</strong><br>${BACKGROUNDS[k].equipment.map(e=>`<span class="trait-tag">${e}</span>`).join(' ')}</div>`;
+updateAutoEquipment(k);
+}
+
+function updateAutoEquipment(bgKey){
+const ae=document.getElementById('autoEquipment');
+ae.innerHTML='<h3>Equipo Automático del Trasfondo</h3>';
+if(!bgKey)return;
+const eq=BACKGROUNDS[bgKey].equipment;
+eq.forEach(item=>{
+ae.innerHTML+=`<div class="equipment-item"><span style="color:var(--gold);margin-right:5px">⚔</span><input type="text" value="${item}" readonly></div>`;
+});
+const cls=charData.class?CLASSES[charData.class]:null;
+if(cls){
+ae.innerHTML+=`<div class="equipment-item"><span style="color:var(--gold);margin-right:5px">🛡</span><input type="text" value="Armas y armadura de ${cls.name}" readonly></div>`;
+}
+}
+
+function addCustomEquipment(){
+const ce=document.getElementById('customEquipment');
+const idx=customEquipmentItems.length;
+customEquipmentItems.push('');
+const div=document.createElement('div');
+div.className='equipment-item';
+div.innerHTML=`<input type="text" placeholder="Nombre del objeto..." oninput="customEquipmentItems[${idx}]=this.value">
+<button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;
+ce.appendChild(div);
+}
+
+function initCustomEquipment(){
+customEquipmentItems=[];
+document.getElementById('customEquipment').innerHTML='';
+}
+
+function generatePreview(){
+const p=document.getElementById('previewPanel');
+const hp=Math.max(charData.level,1)+charData.level*(Math.floor((charData.hitDie)/2+1))+charData.level*charData.mods.con;
+charData.hp={current:hp,max:hp,temp:0};
+const proficiencyBonus=2+Math.floor((charData.level-1)/4);
+charData.proficiencyBonus=proficiencyBonus;
+const ac=10+charData.mods.dex;
+charData.ac=ac;
+const raceData=charData.race?RACES[charData.race]:null;
+const speed=raceData?raceData.speed:30;
+charData.speed=speed;
+charData.saves=charData.class?CLASSES[charData.class].saves:[];
+charData.hitDie=charData.class?CLASSES[charData.class].hitDie:10;
+charData.spellcasting=['mago','clérigo','druida','bardo','paladín','hechicero','brujo'].includes(charData.class);
+const traits=[];
+if(raceData){traits.push(...raceData.traits)}
+if(charData.subrace&&raceData&&raceData.subraces[charData.subrace]){traits.push(...raceData.subraces[charData.subrace].traits)}
+if(charData.class){
+const cls=CLASSES[charData.class];
+Object.values(cls.subclasses).forEach(sc=>{traits.push(...sc.features)});
+}
+charData.traits=traits;
+charData.inventory=[
+...document.querySelectorAll('#autoEquipment .equipment-item input').map(i=>i.value).filter(Boolean),
+...customEquipmentItems.filter(Boolean)
+];
+
+const statsHTML=STAT_KEYS.map(k=>`<div class="preview-stat"><div class="label">${k.toUpperCase()}</div><div class="num">${charData.stats[k]}</div><div class="mod">${getModStr(charData.stats[k])}</div></div>`).join('');
+
+p.innerHTML=`<h3>Vista Previa del Personaje</h3>
+<div class="preview-grid">
+<div class="preview-item"><label>Nombre</label><div class="value gold">${charData.name||'Sin nombre'}</div></div>
+<div class="preview-item"><label>Raza</label><div class="value">${charData.raceLabel}${charData.subrace?' ('+RACES[charData.race].subraces[charData.subrace].name+')':''}</div></div>
+<div class="preview-item"><label>Clase</label><div class="value">${charData.classLabel}${charData.subclass?' - '+CLASSES[charData.class].subclasses[charData.subclass].name:''}</div></div>
+<div class="preview-item"><label>Nivel</label><div class="value">${charData.level}</div></div>
+<div class="preview-item"><label>Alineamiento</label><div class="value">${charData.alignment||'Sin definir'}</div></div>
+<div class="preview-item"><label>Trasfondo</label><div class="value">${charData.background||'Sin trasfondo'}</div></div>
+<div class="preview-item"><label>Puntos de Golpe</label><div class="value">${charData.hp.max}</div></div>
+<div class="preview-item"><label>Clase de Armadura</label><div class="value">${charData.ac}</div></div>
+<div class="preview-item"><label>Velocidad</label><div class="value">${charData.speed} pies</div></div>
+<div class="preview-item"><label>Bono de Competencia</label><div class="value">+${charData.proficiencyBonus}</div></div>
+<div class="preview-item"><label>Salvaciones</label><div class="value">${charData.saves.map(s=>STAT_NAMES[s]).join(', ')||'Ninguna'}</div></div>
+<div class="preview-item"><label>Dado de Golpe</label><div class="value">d${charData.hitDie}</div></div>
+<div class="preview-item"><label>Oro</label><div class="value">${charData.gold} po</div></div>
+<div class="preview-item"><label>Conjuration</label><div class="value">${charData.spellcasting?'Sí':'No'}</div></div>
+</div>
+<h3 style="margin-top:20px">Estadísticas</h3>
+<div class="preview-stats">${statsHTML}</div>
+${charData.traits.length?`<h3 style="margin-top:15px">Rasgos y Características</h3><div style="margin:10px 0">${charData.traits.map(t=>`<span class="trait-tag">${t}</span>`).join(' ')}</div>`:''}
+${charData.personality||charData.ideal||charData.bond||charData.flaw?`<h3 style="margin-top:15px">Trasfondo del Personaje</h3>
+<div class="preview-grid">
+${charData.personality?`<div class="preview-item"><label>Personalidad</label><div class="value">${charData.personality}</div></div>`:''}
+${charData.ideal?`<div class="preview-item"><label>Ideales</label><div class="value">${charData.ideal}</div></div>`:''}
+${charData.bond?`<div class="preview-item"><label>Vínculos</label><div class="value">${charData.bond}</div></div>`:''}
+${charData.flaw?`<div class="preview-item"><label>Defectos</label><div class="value">${charData.flaw}</div></div>`:''}
+</div>`:''}
+${charData.backstory?`<div style="margin-top:15px"><h3 style="margin-bottom:8px">Historia</h3><p style="font-family:'Crimson Text',serif;font-size:1.05rem;color:var(--parchment);line-height:1.7;padding:15px;background:var(--bg-card);border-radius:8px;border-left:3px solid var(--gold)">${charData.backstory}</p></div>`:''}
+${charData.inventory.length?`<h3 style="margin-top:15px">Inventario</h3><div style="margin:10px 0">${charData.inventory.map(i=>`<span class="trait-tag">${i}</span>`).join(' ')}</div>`:''}`;
+}
+
+function getExportJSON(){
+return{
+name:charData.name||"Sin nombre",
+race:charData.race,raceLabel:charData.raceLabel,subrace:charData.subrace,
+class:charData.class,classLabel:charData.classLabel,subclass:charData.subclass,
+background:charData.background,alignment:charData.alignment,level:parseInt(charData.level)||1,
+stats:{...charData.stats},mods:{...charData.mods},
+hp:{...charData.hp},ac:charData.ac,speed:charData.speed,
+proficiencyBonus:charData.proficiencyBonus,saves:[...charData.saves],
+hitDie:charData.hitDie,traits:[...charData.traits],
+backstory:charData.backstory,personality:charData.personality,
+ideal:charData.ideal,bond:charData.bond,flaw:charData.flaw,
+conditions:[],gold:parseInt(charData.gold)||15,spellcasting:charData.spellcasting,
+inventory:[...charData.inventory]
+};
+}
+
+function copyJSON(){
+const json=JSON.stringify(getExportJSON(),null,2);
+navigator.clipboard.writeText(json).then(()=>alert('JSON copiado al portapapeles')).catch(()=>{
+const ta=document.createElement('textarea');ta.value=json;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('JSON copiado');
+});
+}
+
+function downloadJSON(){
+const json=JSON.stringify(getExportJSON(),null,2);
+const blob=new Blob([json],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download=`${charData.name||'personaje'}_dnd5e.json`;
+document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+function updateStepVisibility(){
+for(let i=1;i<=8;i++){
+document.getElementById(`step${i}`).classList.toggle('hidden',i!==currentStep);
+}
+document.querySelectorAll('.step-dot').forEach((dot,i)=>{
+dot.classList.remove('active','completed');
+if(i+1===currentStep)dot.classList.add('active');
+else if(i+1<currentStep)dot.classList.add('completed');
+});
+const progressWidth=((currentStep-1)/7)*100;
+document.querySelector('.progress-bar').style.setProperty('--progress-width',`${progressWidth}%`);
+document.getElementById('prevBtn').style.display=currentStep===1?'none':'inline-flex';
+const nextBtn=document.getElementById('nextBtn');
+if(currentStep===8){nextBtn.style.display='none';}
+else{
+nextBtn.innerHTML=currentStep===7?'Ver Personaje →':'Siguiente →';
+nextBtn.style.display='inline-flex';
+}
+}
+
+function changeStep(dir){
+const next=currentStep+dir;
+if(next<1||next>8)return;
+if(dir>0){
+if(currentStep===1){
+charData.name=document.getElementById('charName').value;
+const customAlign=document.getElementById('customAlignment').value;
+charData.alignment=customAlign||document.getElementById('alignment').value;
+charData.level=parseInt(document.getElementById('charLevel').value)||1;
+}
+if(currentStep===3&&charData.class){
+charData.hitDie=CLASSES[charData.class].hitDie;
+charData.saves=CLASSES[charData.class].saves;
+}
+if(currentStep===7){
+charData.personality=document.getElementById('personality').value;
+charData.ideal=document.getElementById('ideal').value;
+charData.bond=document.getElementById('bond').value;
+charData.flaw=document.getElementById('flaw').value;
+charData.backstory=document.getElementById('backstory').value;
+}
+if(currentStep===8){
+charData.gold=parseInt(document.getElementById('startingGold').value)||15;
+generatePreview();
+}
+}
+currentStep=next;
+updateStepVisibility();
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function init(){
+initRaceGrid();
+initClassGrid();
+initBackgroundGrid();
+initStats();
+initCustomEquipment();
+updateStepVisibility();
+window.addEventListener('scroll',()=>{
+document.getElementById('scrollTop').classList.toggle('visible',window.scrollY>300);
+});
+document.getElementById('subraceSelect').addEventListener('change',function(){
+charData.subrace=this.value;
+});
+document.getElementById('subclassSelect').addEventListener('change',function(){
+charData.subclass=this.value;
+});
+document.querySelectorAll('.step-dot').forEach(dot=>{
+dot.addEventListener('click',function(){
+const step=parseInt(this.dataset.step);
+if(step<=currentStep+1){currentStep=step;updateStepVisibility();}
+});
+});
+}
+
+init();
+</script>
+</body>
+</html>
